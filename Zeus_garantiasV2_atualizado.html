@@ -12,7 +12,7 @@
 .caseToolbar{display:grid;grid-template-columns:1fr 180px 180px;gap:10px;margin:14px 0}.select{background:#061a36;color:#ddebff;border:1px solid #155182;border-radius:10px;padding:10px}.caseHead{grid-template-columns:1.55fr .55fr .55fr .75fr .75fr 90px}.caseMetrics{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px}.mini{font-size:10px;padding:4px 7px;border-radius:12px;background:#0a2949;color:#a9c2e8}.status-ok{color:#35dfc5}.status-warn{color:#ffc45d}.detailGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.detailBox{background:#05142d;border:1px solid #12385c;border-radius:12px;padding:12px;overflow:auto}.detailBox h4{margin:0 0 9px;color:#4ee4ff}.summaryStrip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.summaryStrip div{background:#092143;border:1px solid #123e70;border-radius:9px;padding:9px}.summaryStrip small{display:block;color:#87a5cc}.summaryStrip b{font-size:15px;color:#e8f4ff}.caseTitle{display:flex;align-items:center;gap:8px}.caseTitle strong{font-size:14px}.emptyField{color:#667f9f}.tableWrap{max-height:330px;overflow:auto}.tableWrap thead{position:sticky;top:0;background:#071d3c;z-index:2}@media(max-width:1000px){.caseToolbar,.detailGrid,.summaryStrip{grid-template-columns:1fr}.caseHead{grid-template-columns:1fr 1fr}}
 
 .navBtn{display:block;width:100%;padding:13px 14px;border-radius:10px;color:#8da5ce;margin:6px 0;background:transparent;border:1px solid transparent;text-align:left;font:inherit;cursor:pointer;transition:.2s}.navBtn:hover{color:#dffaff;background:#061b35;border-color:#0f4169}.navBtn.active{background:#08284b;color:#bff5ff;border:1px solid #00aace;box-shadow:0 0 14px #00bde62b}.appPage{margin-top:20px}.statesFull{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}.stateCard{padding:15px;border:1px solid #12446f;border-radius:12px;background:#061832;cursor:pointer;transition:.2s}.stateCard:hover{transform:translateY(-2px);border-color:#17d8ff;box-shadow:0 0 18px #00c8ff22}.stateCard h3{margin:0 0 9px;color:#45e4ff}.stateStats{display:grid;grid-template-columns:1fr 1fr;gap:7px;color:#9db3d4}.stateStats b{color:#eef6ff}.contractCase{color:#4ee4ff;font-weight:700}.viewHidden{display:none!important}@media(max-width:1000px){.statesFull{grid-template-columns:1fr}}
-@media print{aside,.top .search,#dropZone,#btnPdf,.file{display:none!important}main{margin:0!important;width:100%!important}body{background:#fff!important;color:#000!important}.panel,.cards>*{break-inside:avoid;background:#fff!important;color:#000!important;border-color:#ccc!important}.viewHidden{display:block!important}}.printOnly{display:none}#execSummary{font-family:Arial,Helvetica,sans-serif;color:#0b1830}#execSummary h1{font-size:20px;margin:0 0 4px}#execSummary .sub{color:#555;font-size:12px;margin-bottom:14px}#execSummary table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}#execSummary th,#execSummary td{border:1px solid #ccc;padding:4px 6px;text-align:left}#execSummary .kpis{display:flex;gap:10px;margin:10px 0}#execSummary .kpi{flex:1;border:1px solid #ccc;padding:8px;border-radius:6px}#execSummary .kpi b{display:block;font-size:16px}#execSummary .kpi span{font-size:10px;color:#666;text-transform:uppercase}@media print{.app{display:none!important}#execSummary{display:block!important;position:static;padding:24px}}</style><script>
+@media print{aside,.top .search,#dropZone,#btnPdf,.file{display:none!important}main{margin:0!important;width:100%!important}body{background:#fff!important;color:#000!important}.panel,.cards>*{break-inside:avoid;background:#fff!important;color:#000!important;border-color:#ccc!important}.viewHidden{display:block!important}}.printOnly{display:none}#execSummary{font-family:Arial,Helvetica,sans-serif;color:#0b1830}#execSummary h1{font-size:20px;margin:0 0 4px}#execSummary .sub{color:#555;font-size:12px;margin-bottom:14px}#execSummary table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}#execSummary th,#execSummary td{border:1px solid #ccc;padding:4px 6px;text-align:left}#execSummary td.cn{font-size:9px;color:#333;max-width:260px;word-break:break-word}#execSummary .kpis{display:flex;gap:10px;margin:10px 0}#execSummary .kpi{flex:1;border:1px solid #ccc;padding:8px;border-radius:6px}#execSummary .kpi b{display:block;font-size:16px}#execSummary .kpi span{font-size:10px;color:#666;text-transform:uppercase}@media print{.app{display:none!important}#execSummary{display:block!important;position:static;padding:24px}}</style><script>
 /* Leitor XLSX offline: ZIP + XML, sem bibliotecas externas. Requer navegador moderno. */
 const OX={
  u16:(d,o)=>d[o]|d[o+1]<<8,u32:(d,o)=>(d[o]|d[o+1]<<8|d[o+2]<<16|d[o+3]<<24)>>>0,
@@ -46,29 +46,58 @@ const STATE_PATHS={AC:"M3.0,202.2 L21.7,210.6 L59.1,219.0 L85.9,233.0 L120.3,247
 const STATE_CENTROIDS={AC:[57.8,238.1],AL:[610.1,241.4],AM:[151.7,154.4],AP:[359.8,62.5],BA:[526.9,289.8],CE:[561.2,169.2],ES:[544.0,405.7],GO:[397.8,348.0],MA:[468.8,168.7],MG:[478.7,387.4],MS:[312.6,418.0],MT:[295.1,297.5],PA:[341.6,151.0],PB:[606.7,202.3],PE:[587.7,222.0],PI:[506.5,206.7],PR:[365.3,488.3],RJ:[511.7,448.4],RN:[609.3,181.4],RO:[182.0,264.2],RR:[205.6,52.0],RS:[337.5,571.1],SC:[383.7,530.9],SE:[596.7,258.9],SP:[412.4,449.6],TO:[419.0,251.8],DF:[427.7,343.7]};
 function svgLocal(n,a={}){let e=document.createElementNS('http://www.w3.org/2000/svg',n);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));return e}
 
-function tierColor(rank){return['#123a63','#1e56a0','#2f7fd6','#31b6f5','#00e0ff'][rank]}
+function tierColor(rank){return['#1e56a0','#2f7fd6','#31b6f5','#39d3f5','#00e8ff'][rank]}
 function renderBrazilMap(stateRows){
  const svg=document.getElementById('brazilSvg');if(!svg)return;
  svg.setAttribute('viewBox',BR_VIEWBOX);
  let stats=Object.fromEntries(stateRows.map(x=>[x.uf,x]));
  svg.innerHTML='';
- let active=Object.keys(STATE_PATHS).filter(uf=>stats[uf]);
+ let defs=svgLocal('defs');
+ let glow=svgLocal('filter',{id:'nodeGlow',x:'-100%',y:'-100%',width:'300%',height:'300%'});
+ glow.append(svgLocal('feGaussianBlur',{stdDeviation:3,result:'blur'}));
+ let merge=svgLocal('feMerge');merge.append(svgLocal('feMergeNode',{in:'blur'}));merge.append(svgLocal('feMergeNode',{in:'SourceGraphic'}));glow.append(merge);
+ defs.append(glow);svg.append(defs);
+ let active=Object.keys(STATE_CENTROIDS).filter(uf=>stats[uf]);
  let sorted=[...active].sort((a,b)=>(stats[a].hist||0)-(stats[b].hist||0));
  let rankOf={};sorted.forEach((uf,i)=>{rankOf[uf]=sorted.length>1?Math.min(4,Math.floor(i/sorted.length*5)):4});
- let g=svgLocal('g');
+ // contorno real do Brasil (silhueta), estático e discreto
+ let bg=svgLocal('g');
  Object.entries(STATE_PATHS).forEach(([uf,d])=>{
-  let st=stats[uf],fill=st?tierColor(rankOf[uf]):'#0d2748';
-  let p=svgLocal('path',{d,fill,'fill-opacity':st?'.92':'.55',stroke:'#39c7ff','stroke-width':st?1.2:.6,style:'cursor:pointer;transition:fill-opacity .15s'});
-  p.dataset.uf=uf;
-  p.onmousemove=e=>{p.setAttribute('fill-opacity','1');p.setAttribute('stroke-width','2');showMapTipLocal(e,uf,st)};
-  p.onmouseleave=()=>{p.setAttribute('fill-opacity',st?'.92':'.55');p.setAttribute('stroke-width',st?'1.2':'.6');tip.style.display='none'};
+  let p=svgLocal('path',{d,fill:'#0a1f3d',stroke:'#1c4b7a','stroke-width':.8,style:'cursor:pointer'});
+  p.dataset.uf=uf;let st=stats[uf];
+  p.onmousemove=e=>{p.setAttribute('fill','#123a63');showMapTipLocal(e,uf,st)};
+  p.onmouseleave=()=>{p.setAttribute('fill','#0a1f3d');tip.style.display='none'};
   p.onclick=()=>pick(uf);
-  g.append(p)
+  bg.append(p)
+ });
+ svg.append(bg);
+ // linhas de conexão entre os estados ativos (rede de indícios) — interativas, destacam ao passar o mouse
+ let lg=svgLocal('g');
+ active.forEach(uf=>{
+  let p=STATE_CENTROIDS[uf];
+  let near=active.filter(o=>o!==uf).map(o=>({o,d:Math.hypot(STATE_CENTROIDS[o][0]-p[0],STATE_CENTROIDS[o][1]-p[1])})).sort((a,b)=>a.d-b.d).slice(0,2);
+  near.forEach(n=>{
+   let q=STATE_CENTROIDS[n.o];
+   let hit=svgLocal('line',{x1:p[0],y1:p[1],x2:q[0],y2:q[1],stroke:'transparent','stroke-width':10,style:'cursor:pointer'});
+   let line=svgLocal('line',{x1:p[0],y1:p[1],x2:q[0],y2:q[1],stroke:'#39c7ff','stroke-width':1,opacity:.3,style:'pointer-events:none;transition:opacity .15s,stroke-width .15s'});
+   hit.onmouseenter=()=>{line.setAttribute('opacity','1');line.setAttribute('stroke-width','2');line.setAttribute('stroke','#8be9ff')};
+   hit.onmouseleave=()=>{line.setAttribute('opacity','.3');line.setAttribute('stroke-width','1');line.setAttribute('stroke','#39c7ff')};
+   lg.append(line);lg.append(hit)
+  })
+ });
+ svg.append(lg);
+ // nós (dots) por estado, tamanho/cor conforme concentração de dados
+ let g=svgLocal('g');
+ Object.entries(STATE_CENTROIDS).forEach(([uf,p])=>{
+  let st=stats[uf],color=st?tierColor(rankOf[uf]):'#2563eb',r=st?7+rankOf[uf]*1.6:4;
+  let c=svgLocal('circle',{cx:p[0],cy:p[1],r,fill:color,'fill-opacity':st?'.85':'.25',stroke:'#e6f7ff','stroke-width':st?1.5:.8,style:'cursor:pointer',filter:st?'url(#nodeGlow)':''});
+  c.onmousemove=e=>showMapTipLocal(e,uf,st);c.onmouseleave=()=>tip.style.display='none';c.onclick=()=>pick(uf);
+  g.append(c)
  });
  svg.append(g);
  let lbl=svgLocal('g',{style:'pointer-events:none'});
  Object.entries(STATE_CENTROIDS).forEach(([uf,c])=>{
-  let st=stats[uf],t=svgLocal('text',{x:c[0],y:c[1],'text-anchor':'middle','font-size':st?11:9,'font-weight':st?700:400,fill:st?'#f2fbff':'#7fa3d6',style:'paint-order:stroke;stroke:#020b1e;stroke-width:2.5px'});
+  let st=stats[uf],t=svgLocal('text',{x:c[0],y:c[1]-11,'text-anchor':'middle','font-size':st?11:9,'font-weight':st?700:400,fill:st?'#f2fbff':'#5f83ad',style:'paint-order:stroke;stroke:#020b1e;stroke-width:2.5px'});
   t.textContent=uf;lbl.append(t)
  });
  svg.append(lbl)
@@ -100,7 +129,7 @@ function buildExecSummary(){
 let t=window.dashTotals||{casos:0,contratos:0,matriculas:0,semGarantia:0,saldo:0};
 let st=(window.statesData||[]).slice().sort((a,b)=>b.hist-a.hist);
 let dt=new Date().toLocaleDateString('pt-BR');
-let rows=st.map(s=>`<tr><td>${s.uf}</td><td>${s.cases.size}</td><td>${s.mats}</td><td>${num(s.area)} ha</td><td>${brl(s.hist)}</td></tr>`).join('')||'<tr><td colspan="5">Nenhum dado carregado.</td></tr>';
+let rows=st.map(s=>`<tr><td>${s.uf}</td><td>${s.cases.size}</td><td class="cn">${[...s.cases].join(', ')||'—'}</td><td>${s.mats}</td><td>${num(s.area)} ha</td><td>${brl(s.hist)}</td></tr>`).join('')||'<tr><td colspan="6">Nenhum dado carregado.</td></tr>';
 let top3=st.slice(0,3).map(s=>`${s.uf} (${brl(s.hist)})`).join(', ')||'—';
 document.getElementById('execSummary').innerHTML=`
 <h1>Resumo Executivo — Carteira de Garantias</h1>
@@ -114,7 +143,7 @@ document.getElementById('execSummary').innerHTML=`
 </div>
 <p><b>Destaques:</b> maior concentração de saldo histórico em ${top3}. ${t.semGarantia} caso(s) seguem sem garantia associada e requerem atenção prioritária.</p>
 <h2 style="font-size:13px;margin:14px 0 4px">Consolidação por UF</h2>
-<table><thead><tr><th>UF</th><th>Casos</th><th>Matrículas</th><th>Área</th><th>Saldo histórico</th></tr></thead><tbody>${rows}</tbody></table>
+<table><thead><tr><th>UF</th><th>Casos</th><th>Nº dos casos</th><th>Matrículas</th><th>Área</th><th>Saldo histórico</th></tr></thead><tbody>${rows}</tbody></table>
 `}
 document.getElementById('btnPdf')?.addEventListener('click',()=>{buildExecSummary();document.title='Resumo_Executivo_Zeus_'+new Date().toISOString().slice(0,10);setTimeout(()=>{window.print();setTimeout(()=>{document.title='Painel Executivo | Contratos e Garantias'},500)},150)});
 function openCaseFromState(uf){filterUF=uf;setView('casos');drawCases(normalized())}
