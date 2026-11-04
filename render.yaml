@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: leilaoia
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false   # defina no painel; sem ela o app usa o extrator por regras

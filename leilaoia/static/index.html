@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LeilãoIA — Cadeia de Agentes</title>
+<style>
+:root{--bg:#0f1115;--panel:#171a21;--panel2:#1d212a;--line:#2a2f3a;--tx:#e8eaf0;--mut:#9aa3b2;--acc:#f08a24;--ok:#2fbf71;--warn:#e6a817;--bad:#e5534b;--info:#4c8dff;--r:12px}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:18px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;max-width:1240px;margin:auto}
+header h1{font-size:20px;margin:0}header h1 span{color:var(--acc)}
+.chip{font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mut)}
+.chip.on{color:var(--ok);border-color:#235c3f}.chip.off{color:var(--warn);border-color:#6b5316}
+main{max-width:1240px;margin:auto;padding:16px;display:grid;gap:16px}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+h2{font-size:16px;margin:0 0 12px;display:flex;gap:10px;align-items:center}
+h2 .n{background:var(--acc);color:#111;border-radius:50%;width:24px;height:24px;display:inline-grid;place-items:center;font-size:13px;font-weight:700}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+label{display:grid;gap:4px;font-size:12px;color:var(--mut)}
+input,select{background:var(--panel2);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:9px 10px;font:inherit;min-width:0}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:0}
+button{background:var(--acc);color:#111;border:0;border-radius:8px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer}
+button.sec{background:var(--panel2);color:var(--tx);border:1px solid var(--line);font-weight:500}
+button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.mut{color:var(--mut);font-size:13px}.warn{color:var(--warn)}.bad{color:var(--bad)}.ok{color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut);font-weight:500;font-size:12px}tr.sel{background:#2a2216}
+.tbl{overflow-x:auto}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap}
+.b-Judicial{background:#1d2c4d;color:#8db4ff}.b-Receita{background:#2d2a14;color:#e9cf5b}.b-Extrajudicial{background:#2f1d3f;color:#c99bf0}
+.drop{border:2px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;color:var(--mut);cursor:pointer}
+.drop.over,.drop.has{border-color:var(--acc);color:var(--tx)}
+#pipe{width:100%;height:auto;background:var(--panel2);border-radius:var(--r);border:1px solid var(--line)}
+.nd rect,.nd polygon{fill:#222733;stroke:#4a5163;stroke-width:1.6;transition:all .3s}
+.nd text{fill:var(--tx);font-size:12px;text-anchor:middle;pointer-events:none}
+.nd .ag{fill:#5fcf80;font-size:10.5px}
+.nd{cursor:pointer}.nd.dec rect,.nd.dec polygon{stroke:var(--acc)}
+.nd.running rect,.nd.running polygon{stroke:var(--acc);fill:#3a2a14;animation:pulse 1s infinite}
+.nd.done rect,.nd.done polygon{stroke:var(--ok);fill:#14301f}
+.nd.skipped{opacity:.35}.nd.error rect,.nd.error polygon{stroke:var(--bad);fill:#3a1a18}
+.nd.sel rect,.nd.sel polygon{stroke-width:3}
+.ed{stroke:#4a5163;stroke-width:1.6;fill:none;marker-end:url(#ah);transition:stroke .3s}.ed.on{stroke:var(--ok)}
+@keyframes pulse{50%{stroke-width:3.5}}
+#detail{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-top:12px;font-size:13.5px;min-height:48px}
+#log{font-size:13px;margin-top:10px;display:grid;gap:3px;max-height:200px;overflow:auto}
+.verd{border-radius:var(--r);padding:18px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.verd.verde{background:#12301f;border:1px solid var(--ok)}.verd.amarelo{background:#33280d;border:1px solid var(--warn)}.verd.vermelho{background:#35161a;border:1px solid var(--bad)}
+.verd b.big{font-size:28px;letter-spacing:.5px}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:14px 0}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}.kpi small{color:var(--mut);display:block;font-size:12px}.kpi b{font-size:20px}
+.cols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.stack{display:flex;height:26px;border-radius:8px;overflow:hidden;margin:10px 0;border:1px solid var(--line)}
+.leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--mut)}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.pt{border-left:4px solid var(--line);padding:6px 10px;margin:6px 0;background:var(--panel2);border-radius:0 8px 8px 0;font-size:13.5px}
+.pt.alta{border-color:var(--bad)}.pt.media{border-color:var(--warn)}.pt.baixa{border-color:var(--info)}.pt.ok{border-color:var(--ok);opacity:.8}
+.pt small{display:block;color:var(--mut)}
+.tl{border-left:2px solid var(--line);margin-left:6px;padding-left:14px}.tl div{margin:8px 0;position:relative}.tl div:before{content:"";position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--info)}
+.tl div.al:before{background:var(--warn)}
+ul{margin:6px 0;padding-left:20px}
+.hide{display:none!important}
+@media(max-width:600px){main{padding:10px}section.card{padding:14px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Leilão<span>IA</span> <span class="mut" style="font-weight:400">· cadeia de 10 agentes</span></h1>
+  <span id="chipIA" class="chip">verificando…</span>
+</header>
+<main>
+
+<section class="card" id="s1">
+  <h2><span class="n">1</span>Base de dados e objetivo da compra <span class="mut">(Agentes 1 e 2)</span></h2>
+  <div class="grid">
+    <label>Base de lotes (Excel)
+      <select id="baseSel"><option value="exemplo">Base de exemplo (10 lotes)</option><option value="upload">Enviar minha planilha…</option></select></label>
+    <label id="upWrap" class="hide">Planilha .xlsx<input type="file" id="baseFile" accept=".xlsx"></label>
+    <label>Objetivo
+      <select id="objetivo"><option value="revenda">Revenda</option><option value="investimento">Investimento</option><option value="uso">Uso próprio</option></select></label>
+    <label>Orçamento máximo (R$)<input id="orc" type="number" min="0" step="1000" placeholder="ex.: 80000"></label>
+    <label>Categoria
+      <select id="cat"><option>Todas</option><option>Veículos</option><option>Imóvel</option><option>Bens Diversos</option></select></label>
+    <label>UF<input id="uf" maxlength="2" placeholder="SP" style="text-transform:uppercase"></label>
+    <label>Tipo de leilão
+      <select id="tipoF"><option>Todos</option><option>Judicial</option><option>Receita Federal</option><option>Extrajudicial</option></select></label>
+    <label>Tolerância a risco
+      <select id="risco"><option value="baixo">Baixa</option><option value="medio" selected>Média</option><option value="alto">Alta</option></select></label>
+    <label>Margem-alvo (%)<input id="margem" type="number" value="20" min="0" step="1"></label>
+  </div>
+  <div class="row"><button id="btnBuscar">Buscar lotes</button>
+    <a class="mut" href="/api/base/modelo">⬇ baixar modelo de planilha</a><span id="baseInfo" class="mut"></span></div>
+  <div id="baseAvisos" class="mut warn"></div>
+</section>
+
+<section class="card hide" id="s2">
+  <h2><span class="n">2</span>Lotes ranqueados por desconto sobre o mercado</h2>
+  <div class="tbl"><table id="tbLotes"></table></div>
+  <div class="row"><button class="sec" id="btnAvulso">Analisar um edital avulso (sem lote da base)</button></div>
+</section>
+
+<section class="card hide" id="s3">
+  <h2><span class="n">3</span>Edital (PDF) e premissas de custo <span class="mut">(Agentes 3 a 9)</span></h2>
+  <div id="loteSel" class="mut" style="margin-bottom:10px"></div>
+  <div class="drop" id="drop">Arraste o edital em PDF aqui ou clique para escolher<input type="file" id="pdf" accept="application/pdf" class="hide"></div>
+  <div class="row mut" id="exs">Sem edital à mão? Teste com um exemplo fictício: </div>
+  <div class="grid" style="margin-top:12px">
+    <label id="tipoWrap" class="hide">Tipo de leilão (obrigatório sem lote)
+      <select id="tipoM"><option value="">Detectar pelo edital</option><option>Judicial</option><option>Receita Federal</option><option>Extrajudicial</option></select></label>
+    <label>Praça / leilão
+      <select id="praca"><option value="1">1ª praça</option><option value="2">2ª praça</option></select></label>
+    <label>Lance planejado (R$)<input id="lance" type="number" step="100" placeholder="auto: lance mínimo"></label>
+    <label>Dias de armazenamento<input id="dias" type="number" value="15" min="0"></label>
+    <label>Reforma / reparos (R$)<input id="reforma" type="number" value="0" min="0"></label>
+    <label>Outros custos (R$)<input id="outros" type="number" value="0" min="0"></label>
+    <label>Valor de revenda (R$)<input id="venda" type="number" placeholder="auto: valor de mercado da base"></label>
+    <label>ITBI estimado (%)<input id="itbi" type="number" value="3" step="0.1"></label>
+    <label>Registro estimado (%)<input id="reg" type="number" value="1" step="0.1"></label>
+    <label>Transferência veículo (R$)<input id="transf" type="number" value="600"></label>
+  </div>
+  <div class="row"><button id="btnAnalisar" disabled>Rodar cadeia de agentes</button><span id="anaMsg" class="mut"></span></div>
+</section>
+
+<section class="card hide" id="s4">
+  <h2><span class="n">4</span>Cadeia de decisão em execução</h2>
+  <svg id="pipe" viewBox="0 0 1000 380" role="img" aria-label="Fluxo dos 10 agentes"></svg>
+  <div id="detail" class="mut">Clique em um agente para ver o que ele decidiu.</div>
+  <div id="log"></div>
+</section>
+
+<section class="card hide" id="s5"></section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const brl=v=>v==null?'—':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const st={baseId:'exemplo',lote:null,pdf:null,dossie:null,eventos:{}};
+
+fetch('/api/health').then(r=>r.json()).then(h=>{const c=$('chipIA');c.textContent=h.ia?'IA ativa · leitura de PDF por Claude':'modo regras (sem chave de IA)';c.className='chip '+(h.ia?'on':'off')}).catch(()=>{$('chipIA').textContent='offline'});
+
+/* ---------- 1. base + perfil ---------- */
+$('baseSel').onchange=()=>{$('upWrap').classList.toggle('hide',$('baseSel').value!=='upload');if($('baseSel').value==='exemplo'){st.baseId='exemplo';$('baseInfo').textContent='';$('baseAvisos').textContent=''}};
+$('baseFile').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;const fd=new FormData();fd.append('arquivo',f);
+  $('baseInfo').textContent='validando planilha…';
+  const r=await fetch('/api/base',{method:'POST',body:fd});const j=await r.json();
+  if(!r.ok){$('baseInfo').innerHTML='<span class="bad">'+esc(j.detail)+'</span>';return}
+  st.baseId=j.base_id;$('baseInfo').innerHTML='<span class="ok">✔ '+j.lotes+' lotes válidos</span>';
+  $('baseAvisos').innerHTML=j.avisos.length?'⚠ '+j.avisos.map(esc).join('<br>⚠ '):'';
+};
+const perfil=()=>({objetivo:$('objetivo').value,orcamento_max:+$('orc').value||null,categoria:$('cat').value,uf:$('uf').value.trim().toUpperCase()||null,tipo_leilao:$('tipoF').value,risco:$('risco').value,margem_alvo_pct:+$('margem').value||0});
+$('btnBuscar').onclick=async()=>{
+  const r=await fetch('/api/lotes/buscar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base_id:st.baseId,perfil:perfil()})});
+  const j=await r.json();if(!r.ok){alert(j.detail);return}
+  $('s2').classList.remove('hide');
+  const t=$('tbLotes');
+  t.innerHTML='<tr><th>ID</th><th>Bem</th><th>Tipo</th><th>UF</th><th>Lance mín.</th><th>Mercado</th><th>Desconto</th><th>Data</th><th></th></tr>'+
+  (j.lotes.length?j.lotes.map(l=>`<tr data-id="${esc(l.id)}"><td>${esc(l.id)}</td><td>${esc(l.descricao)}<div class="mut">${esc(l.categoria)}${l.situacao?' · '+esc(l.situacao):''}</div></td>
+   <td><span class="badge b-${esc((l.tipo_leilao||'').split(' ')[0])}">${esc(l.tipo_leilao||'—')}</span></td><td>${esc(l.uf||'')}</td><td>${brl(l.lance_minimo)}</td><td>${brl(l.valor_mercado)}</td>
+   <td class="${l.desconto_pct>=30?'ok':''}">${l.desconto_pct!=null?l.desconto_pct+'%':'—'}</td><td>${esc(l.data_leilao||'')}</td><td><button class="sec">Escolher</button></td></tr>`).join(''):'<tr><td colspan=9 class="mut">Nenhum lote atende ao perfil (de '+j.total_base+' na base). Relaxe os filtros.</td></tr>');
+  t.querySelectorAll('tr[data-id] button').forEach(b=>b.onclick=()=>{const id=b.closest('tr').dataset.id;escolher(j.lotes.find(l=>l.id===id));t.querySelectorAll('tr').forEach(x=>x.classList.toggle('sel',x.dataset.id===id))});
+  $('s2').scrollIntoView({behavior:'smooth'});
+};
+function escolher(l){
+  st.lote=l;$('s3').classList.remove('hide');$('tipoWrap').classList.toggle('hide',!!(l&&l.tipo_leilao));
+  $('loteSel').innerHTML=l?`<b>Lote ${esc(l.id)}</b> — ${esc(l.descricao)} · ${esc(l.tipo_leilao||'tipo não informado')} · lance mín. ${brl(l.lance_minimo)} · mercado ${brl(l.valor_mercado)}`:'<b>Edital avulso</b> — a análise usará apenas o PDF.';
+  if(!l)$('tipoWrap').classList.remove('hide');
+  $('s3').scrollIntoView({behavior:'smooth'});
+}
+$('btnAvulso').onclick=()=>escolher(null);
+
+/* ---------- 3. edital ---------- */
+function setPdf(f){st.pdf=f;$('drop').classList.add('has');$('drop').firstChild.textContent='📄 '+f.name+' ('+Math.round(f.size/1024)+' KB) — clique para trocar';$('btnAnalisar').disabled=false}
+$('drop').onclick=()=>$('pdf').click();$('pdf').onchange=e=>e.target.files[0]&&setPdf(e.target.files[0]);
+['dragover','dragenter'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.add('over')}));
+['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('over')}));
+$('drop').addEventListener('drop',e=>{const f=e.dataTransfer.files[0];f&&f.type==='application/pdf'&&setPdf(f)});
+fetch('/api/exemplos').then(r=>r.json()).then(ls=>ls.forEach(x=>{const b=document.createElement('button');b.className='sec';b.textContent=x.arquivo.replace('edital_','').replace('.pdf','').replace('_',' ');b.onclick=async()=>{const blob=await (await fetch(x.url)).blob();setPdf(new File([blob],x.arquivo,{type:'application/pdf'}))};$('exs').appendChild(b)}));
+
+/* ---------- pipeline SVG ---------- */
+const NODES={1:[10,150,100,60,'Objetivo da\ncompra'],2:[140,150,100,60,'Banco de\ndados'],3:[275,140,110,80,'Tipo de\nleilão','d'],
+ 4:[430,40,110,56,'Judicial'],5:[430,152,110,56,'Receita\nFederal'],6:[430,264,110,56,'Extrajudicial'],
+ 7:[590,140,110,80,'Análise de\nedital','d'],8:[740,60,100,56,'Prazos'],9:[740,244,100,56,'Custos'],10:[890,140,100,80,'Dossiê:\ncomprar\nou não?']};
+const EDGES=[[1,2],[2,3],[3,4],[3,5],[3,6],[4,7],[5,7],[6,7],[7,8],[7,9],[8,10],[9,10]];
+function anchor(id,side){const[x,y,w,h]=NODES[id];return side==='r'?[x+w,y+h/2]:[x,y+h/2]}
+function drawPipe(){
+  let s='<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7d8697"/></marker></defs>';
+  EDGES.forEach(([a,b])=>{const[x1,y1]=anchor(a,'r'),[x2,y2]=anchor(b,'l');const mx=(x1+x2)/2;s+=`<path class="ed" id="e${a}_${b}" d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2-2} ${y2}"/>`});
+  for(const id in NODES){const[x,y,w,h,l,d]=NODES[id];const lines=l.split('\n');
+    const shape=d?`<polygon points="${x+w/2},${y} ${x+w},${y+h/2} ${x+w/2},${y+h} ${x},${y+h/2}"/>`:`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="12"/>`;
+    s+=`<g class="nd ${d?'dec':''}" id="n${id}" data-id="${id}">${shape}<text class="ag" x="${x+w/2}" y="${y-6}">Agente ${id}</text>`+
+    lines.map((t,i)=>`<text x="${x+w/2}" y="${y+h/2+4+(i-(lines.length-1)/2)*14}">${esc(t)}</text>`).join('')+'</g>'}
+  $('pipe').innerHTML=s;
+  $('pipe').querySelectorAll('.nd').forEach(n=>n.onclick=()=>showAgent(+n.dataset.id));
+}
+function nodeState(id,status){const n=$('n'+id);if(!n)return;n.classList.remove('running','done','skipped','error');n.classList.add(status);
+  if(status==='done')EDGES.filter(e=>e[1]===id).forEach(([a,b])=>{if(st.eventos[a]&&st.eventos[a].status==='done')$('e'+a+'_'+b).classList.add('on')})}
+function showAgent(id){
+  document.querySelectorAll('.nd').forEach(n=>n.classList.toggle('sel',+n.dataset.id===id));
+  const e=st.eventos[id];if(!e){$('detail').textContent='Este agente ainda não foi executado.';return}
+  let h=`<b>Agente ${id} — ${esc(e.nome)}</b> <span class="mut">(${esc(e.status)}${e.seg!=null?' · '+e.seg+'s':''})</span><div>${esc(e.resumo)}</div>`;
+  const d=e.dados||{};
+  if(d.checklist)h+=d.checklist.map(p=>`<div class="pt ${p.severidade}"><b>${esc(p.titulo)}</b> — ${esc(p.descricao)}${p.fundamento?`<small>${esc(p.fundamento)}</small>`:''}</div>`).join('');
+  if(d.cronograma)h+=d.cronograma.map(p=>`<div>• ${esc(p.data)} — ${esc(p.evento)} ${p.alerta?'<span class="warn">⚠ '+esc(p.alerta)+'</span>':''}</div>`).join('');
+  if(d.itens)h+='<div class="mut">'+d.itens.map(i=>esc(i.nome)+': '+(i.valor_calculado!=null?brl(i.valor_calculado):'a confirmar')).join(' · ')+'</div>';
+  if(d.divergencias&&d.divergencias.length)h+='<div class="warn">⚠ '+d.divergencias.map(esc).join('<br>⚠ ')+'</div>';
+  if(d.aviso)h+='<div class="warn">⚠ '+esc(d.aviso)+'</div>';
+  $('detail').innerHTML=h;
+}
+function logLine(t,c){const d=document.createElement('div');d.className=c||'mut';d.innerHTML=t;$('log').appendChild(d);$('log').scrollTop=1e9}
+
+/* ---------- execução ---------- */
+$('btnAnalisar').onclick=async()=>{
+  if(!st.pdf)return;if(!st.lote&&!$('tipoM').value&&false)return;
+  st.eventos={};st.dossie=null;drawPipe();$('log').innerHTML='';$('s4').classList.remove('hide');$('s5').classList.add('hide');$('s4').scrollIntoView({behavior:'smooth'});
+  $('btnAnalisar').disabled=true;$('anaMsg').textContent='analisando…';
+  const fd=new FormData();fd.append('edital',st.pdf);fd.append('perfil',JSON.stringify(perfil()));
+  fd.append('premissas',JSON.stringify({praca:+$('praca').value,lance:+$('lance').value||null,dias_armazenamento:+$('dias').value||0,reforma:+$('reforma').value||0,outros_custos:+$('outros').value||0,valor_revenda:+$('venda').value||null,itbi_pct:+$('itbi').value,registro_pct:+$('reg').value,transferencia_veiculo:+$('transf').value}));
+  if(st.lote)fd.append('lote',JSON.stringify(st.lote));if($('tipoM').value)fd.append('tipo_leilao',$('tipoM').value);
+  try{
+    const r=await fetch('/api/analise',{method:'POST',body:fd});
+    if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.detail||('HTTP '+r.status))}
+    const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
+    for(;;){const{value,done}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;
+      while((i=buf.indexOf('\n'))>=0){const ln=buf.slice(0,i);buf=buf.slice(i+1);if(ln.trim())onEvent(JSON.parse(ln))}}
+  }catch(e){logLine('✖ '+esc(e.message),'bad');$('anaMsg').innerHTML='<span class="bad">'+esc(e.message)+'</span>'}
+  $('btnAnalisar').disabled=false;
+};
+function onEvent(e){
+  if(e.type==='agent'){st.eventos[e.id]=e;nodeState(e.id,e.status);
+    if(e.status==='done')logLine(`✔ <b>Agente ${e.id} · ${esc(e.nome)}</b> — ${esc(e.resumo)}`,'');
+    if(e.status==='skipped')logLine(`↷ Agente ${e.id} · ${esc(e.nome)} — desviado`,'mut');
+    if(e.status==='running')$('anaMsg').textContent='Agente '+e.id+' — '+e.nome+'…'}
+  else if(e.type==='erro'){logLine('✖ '+esc(e.mensagem),'bad');$('anaMsg').innerHTML='<span class="bad">'+esc(e.mensagem)+'</span>';
+    const run=Object.values(st.eventos).find(x=>x.status==='running');if(run)nodeState(run.id,'error')}
+  else if(e.type==='dossie'){st.dossie=e.dados;$('anaMsg').textContent='';renderDossie(e.dados)}
+}
+
+/* ---------- dossiê ---------- */
+const PAL=['#4c8dff','#f08a24','#2fbf71','#c99bf0','#e6a817','#e5534b','#5fd0d0','#d26ea8','#8b93a5'];
+function renderDossie(d){
+  const v=d.veredito,c=d.custos,f=d.ficha;
+  const segs=[{n:'Lance',v:c.lance}].concat(c.itens.filter(i=>i.computa_no_total&&i.valor_calculado!=null).map(i=>({n:i.nome,v:i.valor_calculado})));
+  const tot=segs.reduce((a,s)=>a+s.v,0)||1;
+  const li=l=>l.length?'<ul>'+l.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'';
+  $('s5').classList.remove('hide');
+  $('s5').innerHTML=`<h2><span class="n">5</span>Dossiê de decisão</h2>
+  <div class="verd ${v.cor}"><b class="big">${esc(v.decisao)}</b><div style="flex:1;min-width:240px">
+   ${v.bloqueios.length?'<div class="bad"><b>Bloqueios</b>'+li(v.bloqueios)+'</div>':''}
+   ${v.atencoes.length?'<div class="warn"><b>Atenção</b>'+li(v.atencoes)+'</div>':''}
+   ${v.positivos.length?'<div class="ok"><b>A favor</b>'+li(v.positivos)+'</div>':''}</div>
+   <button id="btnPdf">⬇ Baixar dossiê em PDF</button></div>
+  <div class="kpis">
+   <div class="kpi"><small>Lance simulado</small><b>${brl(c.lance)}</b></div>
+   <div class="kpi"><small>Custo total (todos os custos)</small><b>${brl(c.custo_total)}</b><small>+${c.acrescimo_pct}% sobre o lance</small></div>
+   <div class="kpi"><small>Valor de revenda/mercado</small><b>${brl(c.valor_venda_ref)}</b></div>
+   <div class="kpi"><small>Lucro · margem</small><b class="${c.margem_pct<0?'bad':''}">${c.lucro!=null?brl(c.lucro)+' · '+c.margem_pct+'%':'—'}</b></div>
+   <div class="kpi"><small>Lance máximo recomendado</small><b>${brl(c.lance_maximo_recomendado)}</b></div></div>
+  ${d.aviso_modo?`<div class="warn">⚠ ${esc(d.aviso_modo)}</div>`:''}
+  <h2 style="margin-top:18px">Composição do custo</h2>
+  <div class="stack">${segs.map((s,i)=>`<div title="${esc(s.n)} ${brl(s.v)}" style="width:${s.v/tot*100}%;background:${PAL[i%PAL.length]}"></div>`).join('')}</div>
+  <div class="leg">${segs.map((s,i)=>`<span><i style="background:${PAL[i%PAL.length]}"></i>${esc(s.n)} ${brl(s.v)}</span>`).join('')}</div>
+  <div class="cols" style="margin-top:16px"><div><h2>Custos detalhados</h2><div class="tbl"><table>
+   <tr><th>Item</th><th>Valor</th><th>Pago a · quando · como</th></tr>
+   <tr><td>Lance arrematado</td><td>${brl(c.lance)}</td><td class="mut">vendedor / leiloeiro</td></tr>
+   ${c.itens.map(i=>`<tr><td>${esc(i.nome)}<div class="mut">${i.tipo==='pct_lance'&&i.valor!=null?i.valor+'% do lance':i.tipo==='diaria'?brl(i.valor)+' × '+i.quantidade+' dias':''} ${i.origem!=='edital'?'<span class="badge" style="background:#3a2a14;color:#f0b062">'+esc(i.origem)+'</span>':''}${i.obs?'<br>'+esc(i.obs):''}</div></td>
+    <td>${i.valor_calculado!=null?brl(i.valor_calculado):'<span class="warn">a confirmar</span>'}${i.computa_no_total?'':'<div class="mut">abatido do preço</div>'}</td>
+    <td class="mut">${esc([i.pago_a,i.quando,i.como].filter(Boolean).join(' · ')||'—')}</td></tr>`).join('')}
+   <tr><td><b>Total</b></td><td><b>${brl(c.custo_total)}</b></td><td></td></tr></table></div>
+   <p class="mut"><b>Como pagar:</b> ${esc(f.forma_pagamento||'—')} · <b>prazo:</b> ${esc(f.prazo_pagamento_texto||'—')}${f.parcelamento?'<br><b>Parcelamento:</b> '+esc(f.parcelamento):''}</p>
+   <h2>A quem pagar</h2><div class="tbl"><table>${c.por_beneficiario.map(b=>`<tr><td>${esc(b.pago_a)}</td><td>${brl(b.valor)}</td></tr>`).join('')}</table></div></div>
+  <div><h2>Prazos</h2><div class="tl">${d.prazos.map(p=>`<div class="${p.alerta?'al':''}"><b>${esc(p.data)}</b> — ${esc(p.evento)}${p.alerta?'<br><span class="warn">⚠ '+esc(p.alerta)+'</span>':''}</div>`).join('')||'<span class="mut">Nenhum prazo identificado.</span>'}</div>
+   <h2 style="margin-top:18px">Ficha do edital</h2><div class="mut">Tipo: ${esc(d.tipo_leilao)} · leiloeiro: ${esc(f.leiloeiro||'—')} ${f.leiloeiro_credenciado?'(credenciado)':''}<br>Processo: ${esc(f.processo||'—')} ${esc(f.juizo||'')}<br>Avaliação ${brl(f.valor_avaliacao)} · 1ª praça ${brl(f.lance_minimo_1)} · 2ª praça ${brl(f.lance_minimo_2)}<br>Comissão: ${f.comissao_pct!=null?f.comissao_pct+'%':'—'} · débitos: ${esc(f.debitos_responsabilidade||'—')}<br>${f.ocupacao?'Ocupação: '+esc(f.ocupacao):''}</div></div></div>
+  <h2 style="margin-top:18px">Pontos de atenção — leilão ${esc(d.tipo_leilao)}</h2>
+  ${d.pontos.map(p=>`<div class="pt ${p.severidade}"><b>${esc(p.titulo)}</b> — ${esc(p.descricao)}${p.fundamento?`<small>Fundamento: ${esc(p.fundamento)}</small>`:''}${p.trecho&&p.severidade!=='ok'?`<small>“${esc(p.trecho.slice(0,260))}”</small>`:''}</div>`).join('')}`;
+  $('btnPdf').onclick=baixarPdf;$('s5').scrollIntoView({behavior:'smooth'});
+}
+async function baixarPdf(){
+  const b=$('btnPdf');b.disabled=true;b.textContent='gerando PDF…';
+  try{const r=await fetch('/api/dossie/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st.dossie)});
+    if(!r.ok)throw new Error((await r.json()).detail);const u=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=u;a.download='dossie_leilao.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(u),5000)}
+  catch(e){alert('Erro: '+e.message)}b.disabled=false;b.textContent='⬇ Baixar dossiê em PDF';
+}
+drawPipe();
+</script>
+</body>
+</html>
