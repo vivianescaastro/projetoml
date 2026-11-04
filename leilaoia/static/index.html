@@ -123,7 +123,7 @@ ul{margin:6px 0;padding-left:20px}
 
 <section class="card hide" id="s4">
   <h2><span class="n">4</span>Cadeia de decisão em execução</h2>
-  <svg id="pipe" viewBox="0 0 1000 380" role="img" aria-label="Fluxo dos 10 agentes"></svg>
+  <svg id="pipe" viewBox="0 0 1240 450" role="img" aria-label="Fluxo dos 10 agentes"></svg>
   <div id="detail" class="mut">Clique em um agente para ver o que ele decidiu.</div>
   <div id="log"></div>
 </section>
@@ -179,17 +179,25 @@ $('drop').addEventListener('drop',e=>{const f=e.dataTransfer.files[0];f&&f.type=
 fetch('/api/exemplos').then(r=>r.json()).then(ls=>ls.forEach(x=>{const b=document.createElement('button');b.className='sec';b.textContent=x.arquivo.replace('edital_','').replace('.pdf','').replace('_',' ');b.onclick=async()=>{const blob=await (await fetch(x.url)).blob();setPdf(new File([blob],x.arquivo,{type:'application/pdf'}))};$('exs').appendChild(b)}));
 
 /* ---------- pipeline SVG ---------- */
-const NODES={1:[10,150,100,60,'Objetivo da\ncompra'],2:[140,150,100,60,'Banco de\ndados'],3:[275,140,110,80,'Tipo de\nleilão','d'],
- 4:[430,40,110,56,'Judicial'],5:[430,152,110,56,'Receita\nFederal'],6:[430,264,110,56,'Extrajudicial'],
- 7:[590,140,110,80,'Análise de\nedital','d'],8:[740,60,100,56,'Prazos'],9:[740,244,100,56,'Custos'],10:[890,140,100,80,'Dossiê:\ncomprar\nou não?']};
-const EDGES=[[1,2],[2,3],[3,4],[3,5],[3,6],[4,7],[5,7],[6,7],[7,8],[7,9],[8,10],[9,10]];
-function anchor(id,side){const[x,y,w,h]=NODES[id];return side==='r'?[x+w,y+h/2]:[x,y+h/2]}
+const NODES={ // [x,y,w,h,rótulo,forma]  — layout do planejamento decisório
+ 1:[10,172,100,56,'Objetivo da\ncompra'],2:[145,172,100,56,'Banco de\ndados'],
+ 21:[300,40,110,50,'Veículos'],22:[300,175,110,50,'Bens Diversos'],23:[300,310,110,50,'Imóvel'],
+ 3:[470,150,115,100,'Tipo de\nleilão','d'],
+ 4:[650,40,110,50,'Judicial'],5:[650,175,110,50,'Receita\nFederal'],6:[650,310,110,50,'Extrajudicial'],
+ 7:[815,150,115,100,'Análise de\nedital','d'],
+ 8:[975,50,95,50,'Prazos'],9:[975,300,95,50,'Custos'],91:[960,375,125,56,'A quem pagar\nComo pagar'],
+ 10:[1115,150,110,100,'Dossiê:\ndecidir pela\ncompra ou não']};
+const LARANJA=[1,2,3,7,10];
+const EDGES=[[1,2],[2,21],[2,22],[2,23],[21,3],[22,3],[23,3],[3,4],[3,5],[3,6],[4,7],[5,7],[6,7],[7,8],[7,9],[8,10],[9,10],[9,91]];
+function anchor(id,side){const[x,y,w,h]=NODES[id];return side==='r'?[x+w,y+h/2]:side==='l'?[x,y+h/2]:side==='b'?[x+w/2,y+h]:[x+w/2,y]}
 function drawPipe(){
   let s='<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7d8697"/></marker></defs>';
-  EDGES.forEach(([a,b])=>{const[x1,y1]=anchor(a,'r'),[x2,y2]=anchor(b,'l');const mx=(x1+x2)/2;s+=`<path class="ed" id="e${a}_${b}" d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2-2} ${y2}"/>`});
+  EDGES.forEach(([a,b])=>{
+    if(b===91){const[x1,y1]=anchor(a,'b'),[x2,y2]=anchor(b,'t');s+=`<path class="ed" id="e${a}_${b}" d="M${x1} ${y1}L${x2} ${y2-2}"/>`;return}
+    const[x1,y1]=anchor(a,'r'),[x2,y2]=anchor(b,'l');const mx=(x1+x2)/2;s+=`<path class="ed" id="e${a}_${b}" d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2-2} ${y2}"/>`});
   for(const id in NODES){const[x,y,w,h,l,d]=NODES[id];const lines=l.split('\n');
     const shape=d?`<polygon points="${x+w/2},${y} ${x+w},${y+h/2} ${x+w/2},${y+h} ${x},${y+h/2}"/>`:`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="12"/>`;
-    s+=`<g class="nd ${d?'dec':''}" id="n${id}" data-id="${id}">${shape}<text class="ag" x="${x+w/2}" y="${y-6}">Agente ${id}</text>`+
+    s+=`<g class="nd ${LARANJA.includes(+id)?'dec':''}" id="n${id}" data-id="${id}">${shape}${+id<=10?`<text class="ag" x="${x+w/2}" y="${y-6}">Agente ${id}</text>`:''}`+
     lines.map((t,i)=>`<text x="${x+w/2}" y="${y+h/2+4+(i-(lines.length-1)/2)*14}">${esc(t)}</text>`).join('')+'</g>'}
   $('pipe').innerHTML=s;
   $('pipe').querySelectorAll('.nd').forEach(n=>n.onclick=()=>showAgent(+n.dataset.id));
@@ -199,11 +207,12 @@ function nodeState(id,status){const n=$('n'+id);if(!n)return;n.classList.remove(
 function showAgent(id){
   document.querySelectorAll('.nd').forEach(n=>n.classList.toggle('sel',+n.dataset.id===id));
   const e=st.eventos[id];if(!e){$('detail').textContent='Este agente ainda não foi executado.';return}
-  let h=`<b>Agente ${id} — ${esc(e.nome)}</b> <span class="mut">(${esc(e.status)}${e.seg!=null?' · '+e.seg+'s':''})</span><div>${esc(e.resumo)}</div>`;
+  let h=`<b>${id<=10?'Agente '+id+' — ':''}${esc(e.nome)}</b> <span class="mut">(${esc(e.status)}${e.seg!=null?' · '+e.seg+'s':''})</span><div>${esc(e.resumo)}</div>`;
   const d=e.dados||{};
   if(d.checklist)h+=d.checklist.map(p=>`<div class="pt ${p.severidade}"><b>${esc(p.titulo)}</b> — ${esc(p.descricao)}${p.fundamento?`<small>${esc(p.fundamento)}</small>`:''}</div>`).join('');
   if(d.cronograma)h+=d.cronograma.map(p=>`<div>• ${esc(p.data)} — ${esc(p.evento)} ${p.alerta?'<span class="warn">⚠ '+esc(p.alerta)+'</span>':''}</div>`).join('');
-  if(d.itens)h+='<div class="mut">'+d.itens.map(i=>esc(i.nome)+': '+(i.valor_calculado!=null?brl(i.valor_calculado):'a confirmar')).join(' · ')+'</div>';
+  if(d.beneficiarios)h+='<table>'+d.itens.map(i=>`<tr><td>${esc(i.item)}</td><td>${brl(i.valor)}</td><td class="mut">${esc([i.pago_a,i.quando,i.como].filter(Boolean).join(' · ')||'—')}</td></tr>`).join('')+'</table>';
+  if(d.itens&&!d.beneficiarios)h+='<div class="mut">'+d.itens.map(i=>esc(i.nome)+': '+(i.valor_calculado!=null?brl(i.valor_calculado):'a confirmar')).join(' · ')+'</div>';
   if(d.divergencias&&d.divergencias.length)h+='<div class="warn">⚠ '+d.divergencias.map(esc).join('<br>⚠ ')+'</div>';
   if(d.aviso)h+='<div class="warn">⚠ '+esc(d.aviso)+'</div>';
   $('detail').innerHTML=h;

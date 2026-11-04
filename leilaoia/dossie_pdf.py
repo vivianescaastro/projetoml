@@ -115,7 +115,7 @@ def gerar_pdf(d: dict) -> bytes:
         story.append(Paragraph("<b>Não encontrado no edital:</b> " + escape(" | ".join(f["lacunas"])), N))
     # etapas
     story.append(Paragraph("6. Trilha de decisão dos agentes", H2))
-    t = Table([["#", "Agente", "Resultado"]] + [[str(e["id"]), _p(e["nome"], N), _p(e["resumo"], S)] for e in sorted(d["etapas"], key=lambda e: e["id"])],
+    t = Table([["#", "Agente", "Resultado"]] + [[("—" if e["status"] == "skipped" else str(e["id"] if e["id"] <= 10 else "")), _p(e["nome"] + (" (desviado)" if e["status"] == "skipped" else ""), N), _p(e["resumo"], S)] for e in d["etapas"]],
               colWidths=[0.8 * cm, 3.6 * cm, 13.0 * cm], repeatRows=1)
     t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), AZUL), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
     story.append(t)

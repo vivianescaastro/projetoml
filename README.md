@@ -6,11 +6,13 @@ App web (FastAPI + front-end estático) que orquestra os agentes do fluxo planej
 |---|---|
 | 1 Objetivo da compra | perfil: objetivo, orçamento, risco, margem-alvo |
 | 2 Banco de dados | lê/valida a planilha Excel e ranqueia lotes pelo desconto sobre o mercado |
+| 2 → Veículos / Bens Diversos / Imóvel | ramo de categoria (do lote, do perfil ou detectado no edital); os outros dois são desviados |
 | 3 Tipo de leilão | decide Judicial / Receita Federal / Extrajudicial (planilha × texto do edital; alerta divergência) |
 | 4 / 5 / 6 | especialistas: lê o edital PDF com checklist e fundamento legal do tipo escolhido (os outros ramos são desviados) |
 | 7 Análise de edital | consolida ficha + riscos, cruza com a base |
 | 8 Prazos | cronograma de praças, pagamento, retirada, armazenamento |
 | 9 Custos | lance + comissão + armazenamento + depósito/caução + taxas + ITBI/registro + débitos…; a quem e como pagar; lance máximo p/ a margem-alvo |
+| 9 → A quem pagar / Como pagar | beneficiários, valores, prazo e forma de pagamento |
 | 10 Dossiê | veredito COMPRAR / ATENÇÃO / NÃO COMPRAR + PDF |
 
 ## Rodar localmente

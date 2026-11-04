@@ -16,12 +16,28 @@ NOMES = {
     1: "Objetivo da compra", 2: "Banco de dados", 3: "Tipo de leilão", 4: "Judicial",
     5: "Receita Federal", 6: "Extrajudicial", 7: "Análise de edital", 8: "Prazos",
     9: "Custos", 10: "Dossiê",
+    21: "Veículos", 22: "Bens Diversos", 23: "Imóvel", 91: "A quem pagar / Como pagar",
 }
+CAT_ID = {"Veículos": 21, "Bens Diversos": 22, "Imóvel": 23}
 ESPECIALISTA = {"Judicial": 4, "Receita Federal": 5, "Extrajudicial": 6}
 
 
 def _brl(v) -> str:
     return "—" if v is None else "R$ " + f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _categoria(lote: Optional[Lote], perfil: Perfil, texto: str) -> tuple[str, str]:
+    import re
+    if lote and lote.categoria in CAT_ID:
+        return lote.categoria, "banco de dados"
+    if perfil.categoria in CAT_ID:
+        return perfil.categoria, "perfil do comprador"
+    t = texto.lower()
+    if re.search(r"matr[íi]cula|im[óo]vel|apartamento|terreno|\bcasa\b|sala comercial", t):
+        return "Imóvel", "texto do edital"
+    if re.search(r"ve[íi]culo|placa|chassi|renavam|motocicleta|\bmoto\b", t):
+        return "Veículos", "texto do edital"
+    return "Bens Diversos", "padrão"
 
 
 def _data(s: Optional[str]) -> Optional[date]:
@@ -49,6 +65,10 @@ def executar(pdf: bytes, nome_arquivo: str, lote: Optional[Lote], perfil: Perfil
         return _ev(id_, status, resumo, dados, t0)
 
     try:
+        texto, paginas = extrair_texto(pdf)           # leitura do PDF (insumo dos agentes 2 e 3)
+        texto_n = normalizar(texto)
+        escaneado = len(texto_n) < 200 * max(paginas, 1) * 0.2
+
         # ---- Agente 1
         t0 = time.time(); yield _ev(1, "running")
         r = (f"Objetivo: {perfil.objetivo} · orçamento {_brl(perfil.orcamento_max)} · risco {perfil.risco}"
@@ -63,11 +83,14 @@ def executar(pdf: bytes, nome_arquivo: str, lote: Optional[Lote], perfil: Perfil
             yield fim(2, r, lote.model_dump(), t0)
         else:
             yield fim(2, "Lote avulso: análise feita só com o edital (sem item da base).", None, t0)
-
-        # ---- leitura do PDF
-        texto, paginas = extrair_texto(pdf)
-        texto_n = normalizar(texto)
-        escaneado = len(texto_n) < 200 * max(paginas, 1) * 0.2
+        # ---- ramo de categoria do banco de dados: Veículos | Bens Diversos | Imóvel
+        categoria, origem_cat = _categoria(lote, perfil, texto_n)
+        for nome_cat, cid in CAT_ID.items():
+            if nome_cat == categoria:
+                yield _ev(cid, "running")
+                yield fim(cid, f"Categoria: {categoria} (fonte: {origem_cat}).", {"categoria": categoria}, None)
+            else:
+                yield fim(cid, "Categoria não aplicável a este lote.", None, None, status="skipped")
 
         # ---- Agente 3 (decisão: tipo de leilão)
         t0 = time.time(); yield _ev(3, "running")
@@ -150,7 +173,7 @@ def executar(pdf: bytes, nome_arquivo: str, lote: Optional[Lote], perfil: Perfil
             lance = (ed.lance_minimo_2 if prem.praca == 2 else ed.lance_minimo_1) or (lote.lance_minimo if lote else None)
         if not lance:
             raise ValueError("Informe o lance planejado (não foi possível inferir o lance mínimo do edital).")
-        categoria = (lote.categoria if lote else None) or ed.categoria_bem or (perfil.categoria if perfil.categoria != "Todas" else "Bens Diversos")
+        ed.categoria_bem = categoria
         custos = costs.calcular(ed, categoria, prem, lance, lote.valor_mercado if lote else None)
         lm = costs.lance_maximo(custos, perfil.margem_alvo_pct) if perfil.objetivo != "uso" else None
         custos["lance_maximo_recomendado"] = lm
@@ -159,6 +182,17 @@ def executar(pdf: bytes, nome_arquivo: str, lote: Optional[Lote], perfil: Perfil
                   f"(+{custos['acrescimo_pct']}% sobre o lance)"
                   + (f"; margem {custos['margem_pct']}%" if custos["margem_pct"] is not None else "") + ".",
                   custos, t0)
+
+        # ---- saída do Agente 9: a quem pagar / como pagar
+        t0 = time.time(); yield _ev(91, "running")
+        benef = custos["por_beneficiario"]
+        pagto = {"beneficiarios": benef, "forma": ed.forma_pagamento, "prazo": ed.prazo_pagamento_texto,
+                 "parcelamento": ed.parcelamento,
+                 "itens": [{"item": i["nome"], "pago_a": i.get("pago_a"), "quando": i.get("quando"), "como": i.get("como"),
+                            "valor": i["valor_calculado"]} for i in custos["itens"] if i["computa_no_total"]]}
+        yield fim(91, "A quem: " + "; ".join(f"{b['pago_a']} {_brl(b['valor'])}" for b in benef)
+                  + f". Como: {ed.forma_pagamento or 'não informado'} · prazo {ed.prazo_pagamento_texto or 'não informado'}.",
+                  pagto, t0)
 
         # ---- Agente 10 (dossiê e veredito)
         t0 = time.time(); yield _ev(10, "running")
