@@ -29,3 +29,13 @@ for lid, arq, rot, tit, perfil in CEN:
 html = (ROOT / "scripts" / "demo_template.html").read_text().replace("/*__DATA__*/", json.dumps(out, ensure_ascii=False))
 (ROOT / "leilaoia" / "demo.html").write_text(html)
 print("demo.html:", len(html) // 1024, "KB")
+
+# versão para GitHub Pages: documento HTML completo em docs/index.html
+i = html.index("</style>") + len("</style>")
+docs = ROOT / "docs"
+docs.mkdir(exist_ok=True)
+(docs / "index.html").write_text('<!doctype html>\n<html lang="pt-BR">\n<head>\n<meta charset="utf-8">\n'
+                                 '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
+                                 + html[:i] + "\n</head>\n<body>\n" + html[i:] + "\n</body>\n</html>\n")
+(docs / ".nojekyll").write_text("")
+print("docs/index.html pronto")
