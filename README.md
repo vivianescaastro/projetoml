@@ -23,7 +23,17 @@ uvicorn leilaoia.main:app --reload
 ```
 Sem a chave, usa um extrator por regras (o dossiê avisa para revisar os valores).
 
-## Nuvem
+## Nuvem (privado)
+Defina `APP_PASSWORD` para exigir login (o navegador pede usuário/senha; o usuário pode ser qualquer um).
+
+### Render em 5 passos
+1. render.com → **New → Blueprint** → conecte este repositório e o branch.
+2. Ele lê o `render.yaml` e cria o serviço.
+3. Em **Environment**, preencha `APP_PASSWORD` e, se quiser leitura por IA, `ANTHROPIC_API_KEY`.
+4. Aguarde o build e abra a URL `https://leilaoia-xxxx.onrender.com`.
+5. Informe qualquer usuário e a senha definida.
+
+## Nuvem (detalhes)
 `Dockerfile` e `render.yaml` prontos (Render, Fly, Cloud Run…). Defina `ANTHROPIC_API_KEY` (e opcionalmente `CLAUDE_MODEL`).
 
 ## Planilha

@@ -7,3 +7,5 @@ services:
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false   # defina no painel; sem ela o app usa o extrator por regras
+      - key: APP_PASSWORD
+        sync: false   # senha de acesso (usuário: qualquer nome). Mantém o app privado.

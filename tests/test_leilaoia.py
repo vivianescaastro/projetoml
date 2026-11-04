@@ -74,3 +74,12 @@ def test_api():
     with (S / "edital_receita_federal.pdf").open("rb") as f:
         r = c.post("/api/analise", files={"edital": ("e.pdf", f, "application/pdf")})
     assert r.status_code == 200 and '"type": "dossie"' in r.text
+
+
+def test_senha_de_acesso(monkeypatch):
+    monkeypatch.setenv("APP_PASSWORD", "segredo")
+    c = TestClient(app)
+    assert c.get("/api/health").status_code == 200
+    assert c.get("/").status_code == 401
+    assert c.get("/", auth=("eu", "errada")).status_code == 401
+    assert c.get("/", auth=("eu", "segredo")).status_code == 200

@@ -21,6 +21,26 @@ MAX_XLSX = 10 * 1024 * 1024
 app = FastAPI(title="LeilãoIA", version="1.0")
 
 
+@app.middleware("http")
+async def senha_de_acesso(request, call_next):
+    """Se APP_PASSWORD estiver definida, exige login (HTTP Basic) — deixa o app privado na nuvem."""
+    senha = os.getenv("APP_PASSWORD")
+    if senha and request.url.path != "/api/health":
+        import base64
+        import hmac
+        ok = False
+        h = request.headers.get("authorization", "")
+        if h.lower().startswith("basic "):
+            try:
+                usuario, _, pwd = base64.b64decode(h[6:]).decode().partition(":")
+                ok = hmac.compare_digest(pwd.encode(), senha.encode())
+            except Exception:  # noqa: BLE001
+                ok = False
+        if not ok:
+            return Response("Acesso restrito", status_code=401, headers={"WWW-Authenticate": 'Basic realm="LeilaoIA"'})
+    return await call_next(request)
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True, "ia": llm.disponivel(), "modelo": llm.MODELO if llm.disponivel() else None}
