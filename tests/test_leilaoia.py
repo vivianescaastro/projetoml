@@ -65,7 +65,8 @@ def test_planilha_invalida_e_modelo():
     assert base.lotes[0].lance_minimo == 24000
 
 
-def test_api():
+def test_api(tmp_path, monkeypatch):
+    monkeypatch.setenv("DADOS_DIR", str(tmp_path))
     c = TestClient(app)
     assert c.get("/api/health").json()["ok"]
     r = c.post("/api/lotes/buscar", json={"perfil": {"categoria": "Imóvel"}})
@@ -76,7 +77,8 @@ def test_api():
     assert r.status_code == 200 and '"type": "dossie"' in r.text
 
 
-def test_senha_de_acesso(monkeypatch):
+def test_senha_de_acesso(monkeypatch, tmp_path):
+    monkeypatch.setenv("DADOS_DIR", str(tmp_path))
     monkeypatch.setenv("APP_PASSWORD", "segredo")
     c = TestClient(app)
     assert c.get("/api/health").status_code == 200
