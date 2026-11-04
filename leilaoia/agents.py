@@ -26,6 +26,33 @@ def _brl(v) -> str:
     return "—" if v is None else "R$ " + f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _sn(v: Optional[bool], sim: str = "Sim", nao: str = "Não") -> str:
+    return "Não respondida" if v is None else (sim if v else nao)
+
+
+def respostas_do_perfil(p: Perfil) -> list[dict]:
+    """Agente 1: o objetivo da compra em formato de perguntas e respostas (aparece no dossiê, PDF e planilha)."""
+    obj = {"revenda": "Revender com lucro", "investimento": "Investir e manter (renda ou valorização)", "uso": "Uso próprio"}[p.objetivo]
+    prazo = {3: "Até 3 meses", 6: "Até 6 meses", 12: "Até 12 meses"}.get(p.prazo_revenda_meses or 0, "Sem pressa" if p.prazo_revenda_meses == 0 else "Não respondida")
+    qa = [
+        ("O que você pretende fazer com o bem?", obj),
+        ("Qual tipo de bem você procura?", "Qualquer" if p.categoria in ("Todas", "", None) else p.categoria),
+        ("Em que tipo de leilão vai participar?", "Ainda não sei" if p.tipo_leilao in ("Todos", "", None) else p.tipo_leilao),
+        ("Qual o máximo que pode gastar no total (lance + comissão, taxas e impostos)?", _brl(p.orcamento_max) if p.orcamento_max else "Sem limite informado"),
+        ("Em qual estado (UF) quer comprar?", p.uf or "Qualquer"),
+    ]
+    if p.objetivo != "uso":
+        qa += [("Qual o lucro mínimo que compensa (% sobre o que será investido)?", f"{p.margem_alvo_pct:g}%"),
+               ("Em quanto tempo precisa revender ou liberar o bem?", prazo)]
+    qa += [
+        ("Terá o valor total disponível para pagar em até 2 dias úteis?", _sn(p.pagamento_imediato, "Sim", "Não — só consigo parcelado")),
+        ("Aceita comprar bem ocupado (pode exigir ação para desocupar)?", _sn(p.aceita_ocupado)),
+        ("Aceita assumir débitos do bem (IPVA, IPTU, condomínio, multas)?", _sn(p.aceita_debitos)),
+        ("Quanto risco aceita nesta compra?", {"baixo": "Pouco risco", "medio": "Risco moderado", "alto": "Aceito risco alto"}[p.risco]),
+    ]
+    return [{"pergunta": q, "resposta": r} for q, r in qa]
+
+
 def _categoria(lote: Optional[Lote], perfil: Perfil, texto: str) -> tuple[str, str]:
     import re
     if lote and lote.categoria in CAT_ID:
@@ -72,9 +99,10 @@ def executar(pdf: bytes, nome_arquivo: str, lote: Optional[Lote], perfil: Perfil
 
         # ---- Agente 1
         t0 = time.time(); yield _ev(1, "running")
-        r = (f"Objetivo: {perfil.objetivo} · orçamento {_brl(perfil.orcamento_max)} · risco {perfil.risco}"
+        qa = respostas_do_perfil(perfil)
+        r = (f"{len(qa)} perguntas respondidas. Objetivo: {perfil.objetivo} · orçamento {_brl(perfil.orcamento_max)} · risco {perfil.risco}"
              + (f" · margem-alvo {perfil.margem_alvo_pct:.0f}%" if perfil.objetivo != "uso" else ""))
-        yield fim(1, r, perfil.model_dump(), t0)
+        yield fim(1, r, {**perfil.model_dump(), "respostas": qa}, t0)
 
         # ---- Agente 2
         t0 = time.time(); yield _ev(2, "running")
@@ -208,7 +236,7 @@ def executar(pdf: bytes, nome_arquivo: str, lote: Optional[Lote], perfil: Perfil
         dossie = {
             "gerado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "arquivo": nome_arquivo, "modo_leitura": modo, "aviso_modo": aviso_modo,
-            "perfil": perfil.model_dump(), "lote": lote.model_dump() if lote else None,
+            "perfil": perfil.model_dump(), "respostas": respostas_do_perfil(perfil), "lote": lote.model_dump() if lote else None,
             "premissas": prem.model_dump(), "tipo_leilao": tipo, "ficha": ed.model_dump(),
             "pontos": [p.model_dump() for p in pontos], "divergencias": diverg,
             "prazos": prazos, "custos": custos, "veredito": ver, "etapas": etapas,
@@ -274,6 +302,20 @@ def _veredito(perfil: Perfil, ed: Edital, pontos: list[Ponto], custos: dict, pra
         bloqueios.append(f"Custo total {_brl(custos['custo_total'])} excede o orçamento {_brl(perfil.orcamento_max)}.")
     elif perfil.orcamento_max:
         positivos.append(f"Custo total dentro do orçamento ({_brl(custos['custo_total'])}).")
+    # ---- respostas de aceitação do Agente 1 × o que o edital diz
+    ocup = [p for p in pontos if "ocupa" in p.titulo.lower() and p.severidade != "ok"]
+    deb = (ed.debitos_responsabilidade or "").startswith(("Por conta", "Misto")) or any(
+        c["nome"].startswith("Débitos a cargo") for c in custos["itens"])
+    if ocup and perfil.aceita_ocupado is False:
+        bloqueios.append("O edital indica bem ocupado/desocupação e você respondeu que não aceita bem ocupado.")
+    elif ocup and perfil.prazo_revenda_meses and perfil.prazo_revenda_meses <= 3:
+        atencoes.append("Bem possivelmente ocupado e você precisa revender em até 3 meses: a desocupação pode estourar o prazo.")
+    if deb and perfil.aceita_debitos is False:
+        bloqueios.append("Há débitos do bem por conta do arrematante e você respondeu que não aceita assumir débitos.")
+    if ed.prazo_pagamento_dias is not None and ed.prazo_pagamento_dias <= 2 and perfil.pagamento_imediato is False:
+        (atencoes if ed.parcelamento else bloqueios).append(
+            f"Pagamento exigido em {ed.prazo_pagamento_texto} e você não terá o valor total disponível"
+            + (" — o edital cita parcelamento; confirme as condições (normalmente exige proposta antes do leilão)." if ed.parcelamento else "."))
     m = custos.get("margem_pct")
     if perfil.objetivo != "uso" and m is not None:
         if m < 0:

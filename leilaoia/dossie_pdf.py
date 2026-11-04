@@ -36,7 +36,7 @@ def gerar_pdf(d: dict) -> bytes:
     C = ParagraphStyle("C", parent=N, alignment=TA_CENTER)
     v, f, cu, lote = d["veredito"], d["ficha"], d["custos"], d.get("lote")
     corv = COR[v["cor"]]
-    story = [Paragraph("Dossiê de Leilão — decisão de compra", H1),
+    story = [Paragraph(f"Dossiê de Leilão — decisão de compra" + (f"  ·  <font color='#C98A00'>{escape(d['id'])}</font>" if d.get("id") else ""), H1),
              Paragraph(f"Gerado em {escape(d['gerado_em'])} · arquivo: {escape(d['arquivo'])} · leilão {escape(d['tipo_leilao'])} · "
                        f"leitura {'por IA' if d['modo_leitura']=='ia' else 'por regras (revisar)'}", S), Spacer(1, 8)]
     banner = Table([[Paragraph(f"<font color='white' size=20><b>{v['decisao']}</b></font>", C)]], colWidths=[17.4 * cm], rowHeights=[1.5 * cm])
@@ -63,6 +63,11 @@ def gerar_pdf(d: dict) -> bytes:
     t.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey), ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#EEF2F7")),
                            ("VALIGN", (0, 0), (-1, -1), "TOP")]))
     story.append(t)
+    if d.get("respostas"):
+        story.append(Paragraph("Objetivo da compra — perguntas e respostas", H2))
+        t = Table([[_p(r["pergunta"], N), _p(r["resposta"], N)] for r in d["respostas"]], colWidths=[10.4 * cm, 7.0 * cm])
+        t.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey), ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#EEF2F7")), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        story.append(t)
     # custos
     story.append(Paragraph("2. Custos detalhados", H2))
     rows = [["Item", "Base", "Valor (R$)", "Pago a / quando / como", "Origem"]]

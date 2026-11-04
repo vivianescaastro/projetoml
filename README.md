@@ -28,9 +28,12 @@ O servidor usa **uma planilha fixa**: `leilaoia/data/base_leiloes.xlsx` (ou o ca
 Para atualizar a base, substitua o arquivo e faça commit/redeploy. Colunas aceitas: ver `leilaoia/excel_db.py` (`COLUNAS`).
 
 ## Histórico de análises (planilha + espelho em HTML)
+Cada análise recebe um **número de ID sequencial** (`AN-0001`, `AN-0002`…, controlado por `analises/contador.txt`; números apagados não são reutilizados). O ID aparece na tela, no PDF, na planilha e no espelho HTML.
+
 A cada análise o app grava em `analises/`:
 - `historico.xlsx` — abas **Analises** (1 linha por edital), **Custos** (com trecho literal e página), **Pontos**, **Valores_edital**, **Prazos**;
 - `index.html` — espelho para consulta (filtros + dossiê completo); no app: `/historico/`;
+- aba **Objetivo_perguntas** — as 11 perguntas do Agente 1 com as respostas de cada análise;
 - `json/` — dossiê completo de cada análise (fonte da verdade; planilha e HTML são regenerados dele com `python -m leilaoia.storage`).
 
 Para enviar ao GitHub automaticamente após cada análise: `AUTO_COMMIT=1` (usa o git/credenciais do ambiente, ex.: Codespaces). Sem isso, faça `git add analises && git commit && git push`.

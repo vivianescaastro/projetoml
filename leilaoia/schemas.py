@@ -17,6 +17,11 @@ class Perfil(BaseModel):
     tipo_leilao: str = "Todos"        # Judicial | Receita Federal | Extrajudicial | Todos
     risco: Literal["baixo", "medio", "alto"] = "medio"
     margem_alvo_pct: float = 20.0
+    # perguntas de aceitação (None = não respondida → sem restrição)
+    pagamento_imediato: Optional[bool] = None   # terá o valor total em até 2 dias úteis?
+    aceita_ocupado: Optional[bool] = None       # aceita bem ocupado?
+    aceita_debitos: Optional[bool] = None       # aceita assumir débitos do bem?
+    prazo_revenda_meses: Optional[int] = None   # em quanto tempo precisa revender / liberar o bem
 
 
 class Lote(BaseModel):

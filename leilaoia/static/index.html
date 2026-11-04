@@ -18,6 +18,11 @@ h2{font-size:16px;margin:0 0 12px;display:flex;gap:10px;align-items:center}
 h2 .n{background:var(--acc);color:#111;border-radius:50%;width:24px;height:24px;display:inline-grid;place-items:center;font-size:13px;font-weight:700}
 .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
 label{display:grid;gap:4px;font-size:12px;color:var(--mut)}
+.qs{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.q{display:grid;gap:5px;align-content:start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.q label{font-size:14px;color:var(--tx);font-weight:600;display:block}.q small{color:var(--mut);font-size:12px}
+.qn{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#111;font-size:12px;margin-right:8px}
+.idtag{background:var(--acc);color:#111;border-radius:8px;padding:2px 10px;font-size:14px;margin-left:8px}
 input,select{background:var(--panel2);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:9px 10px;font:inherit;min-width:0}
 input:focus,select:focus{outline:2px solid var(--acc);outline-offset:0}
 button{background:var(--acc);color:#111;border:0;border-radius:8px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer}
@@ -73,22 +78,32 @@ ul{margin:6px 0;padding-left:20px}
 <main>
 
 <section class="card" id="s1">
-  <h2><span class="n">1</span>Objetivo da compra e base de lotes <span class="mut">(Agentes 1 e 2)</span></h2>
-  <div class="grid">
-    <label>Objetivo
-      <select id="objetivo"><option value="revenda">Revenda</option><option value="investimento">Investimento</option><option value="uso">Uso próprio</option></select></label>
-    <label>Orçamento máximo (R$)<input id="orc" type="number" min="0" step="1000" placeholder="ex.: 80000"></label>
-    <label>Categoria
-      <select id="cat"><option>Todas</option><option>Veículos</option><option>Imóvel</option><option>Bens Diversos</option></select></label>
-    <label>UF<input id="uf" maxlength="2" placeholder="SP" style="text-transform:uppercase"></label>
-    <label>Tipo de leilão
-      <select id="tipoF"><option>Todos</option><option>Judicial</option><option>Receita Federal</option><option>Extrajudicial</option></select></label>
-    <label>Tolerância a risco
-      <select id="risco"><option value="baixo">Baixa</option><option value="medio" selected>Média</option><option value="alto">Alta</option></select></label>
-    <label>Margem-alvo (%)<input id="margem" type="number" value="20" min="0" step="1"></label>
+  <h2><span class="n">1</span>Objetivo da compra <span class="mut">(Agente 1 — responda para o sistema decidir por você)</span></h2>
+  <div class="qs">
+    <div class="q"><label for="objetivo"><span class="qn">1</span>O que você pretende fazer com o bem?</label>
+      <select id="objetivo"><option value="revenda">Revender com lucro</option><option value="investimento">Investir e manter (renda ou valorização)</option><option value="uso">Uso próprio</option></select></div>
+    <div class="q"><label for="cat"><span class="qn">2</span>Qual tipo de bem você procura?</label>
+      <select id="cat"><option value="Todas">Qualquer</option><option>Veículos</option><option>Imóvel</option><option>Bens Diversos</option></select></div>
+    <div class="q"><label for="tipoF"><span class="qn">3</span>Em que tipo de leilão vai participar?</label>
+      <select id="tipoF"><option value="Todos">Ainda não sei</option><option>Judicial</option><option>Receita Federal</option><option>Extrajudicial</option></select></div>
+    <div class="q"><label for="orc"><span class="qn">4</span>Qual o máximo que pode gastar <b>no total</b>?</label><small>Some lance + comissão, taxas, impostos e custos do bem.</small>
+      <input id="orc" type="number" min="0" step="1000" placeholder="ex.: 80000 (em R$)"></div>
+    <div class="q"><label for="uf"><span class="qn">5</span>Em qual estado (UF) quer comprar?</label><small>Deixe em branco para qualquer estado.</small>
+      <input id="uf" maxlength="2" placeholder="SP" style="text-transform:uppercase"></div>
+    <div class="q" id="qMargem"><label for="margem"><span class="qn">6</span>Qual o lucro mínimo que compensa?</label><small>Percentual sobre o que será investido. O sistema calcula o lance máximo para atingir essa meta.</small>
+      <input id="margem" type="number" value="20" min="0" step="1"></div>
+    <div class="q" id="qRev"><label for="prazoRev"><span class="qn">7</span>Em quanto tempo precisa revender ou liberar o bem?</label>
+      <select id="prazoRev"><option value="">— selecione —</option><option value="3">Até 3 meses</option><option value="6">Até 6 meses</option><option value="12">Até 12 meses</option><option value="0">Sem pressa</option></select></div>
+    <div class="q"><label for="pgto"><span class="qn">8</span>Terá o valor <b>total</b> disponível para pagar em até 2 dias úteis?</label><small>Muitos editais exigem pagamento à vista em 24–48 h.</small>
+      <select id="pgto"><option value="">— selecione —</option><option value="1">Sim</option><option value="0">Não — só consigo parcelado</option></select></div>
+    <div class="q"><label for="ocup"><span class="qn">9</span>Aceita comprar bem <b>ocupado</b>?</label><small>Pode ser necessária ação judicial para desocupar, com custo e demora.</small>
+      <select id="ocup"><option value="">— selecione —</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+    <div class="q"><label for="deb"><span class="qn">10</span>Aceita assumir <b>débitos</b> do bem (IPVA, IPTU, condomínio, multas)?</label>
+      <select id="deb"><option value="">— selecione —</option><option value="1">Sim, desde que entrem no cálculo</option><option value="0">Não</option></select></div>
+    <div class="q"><label for="risco"><span class="qn">11</span>Quanto risco aceita nesta compra?</label>
+      <select id="risco"><option value="baixo">Pouco risco — qualquer alerta grave me barra</option><option value="medio" selected>Risco moderado</option><option value="alto">Aceito risco alto por uma boa margem</option></select></div>
   </div>
-  <div class="row"><button id="btnBuscar">Buscar lotes</button>
-    <span id="baseInfo" class="mut"></span></div>
+  <div class="row"><button id="btnBuscar">Buscar lotes</button><span id="baseInfo" class="mut"></span></div>
   <div id="baseAvisos" class="mut warn"></div>
 </section>
 
@@ -130,6 +145,7 @@ ul{margin:6px 0;padding-left:20px}
 <section class="card hide" id="s5"></section>
 </main>
 
+<script src="dossie.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -142,7 +158,11 @@ fetch('/api/health').then(r=>r.json()).then(h=>{const c=$('chipIA');c.textConten
 fetch('/api/base/atual').then(r=>r.json()).then(j=>{$('baseInfo').innerHTML=j.detail?'<span class="bad">'+esc(j.detail)+'</span>':
   'Base fixa: <b>'+esc(j.arquivo)+'</b> · '+j.lotes+' lotes'+(j.exemplo?' <span class="warn">(base de exemplo — coloque a sua em leilaoia/data/base_leiloes.xlsx)</span>':'');
   $('baseAvisos').innerHTML=(j.avisos||[]).length?'⚠ '+j.avisos.map(esc).join('<br>⚠ '):''});
-const perfil=()=>({objetivo:$('objetivo').value,orcamento_max:+$('orc').value||null,categoria:$('cat').value,uf:$('uf').value.trim().toUpperCase()||null,tipo_leilao:$('tipoF').value,risco:$('risco').value,margem_alvo_pct:+$('margem').value||0});
+const tri=id=>{const v=$(id).value;return v===''?null:v==='1'};
+const perfil=()=>({objetivo:$('objetivo').value,orcamento_max:+$('orc').value||null,categoria:$('cat').value,uf:$('uf').value.trim().toUpperCase()||null,tipo_leilao:$('tipoF').value,risco:$('risco').value,margem_alvo_pct:+$('margem').value||0,
+  pagamento_imediato:tri('pgto'),aceita_ocupado:tri('ocup'),aceita_debitos:tri('deb'),prazo_revenda_meses:$('prazoRev').value===''?null:+$('prazoRev').value});
+const ajustaPerguntas=()=>{const uso=$('objetivo').value==='uso';$('qMargem').classList.toggle('hide',uso);$('qRev').classList.toggle('hide',uso)};
+$('objetivo').onchange=ajustaPerguntas;ajustaPerguntas();
 $('btnBuscar').onclick=async()=>{
   const r=await fetch('/api/lotes/buscar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base_id:st.baseId,perfil:perfil()})});
   const j=await r.json();if(!r.ok){alert(j.detail);return}
@@ -236,51 +256,13 @@ function onEvent(e){
     if(e.status==='running')$('anaMsg').textContent='Agente '+e.id+' — '+e.nome+'…'}
   else if(e.type==='erro'){logLine('✖ '+esc(e.mensagem),'bad');$('anaMsg').innerHTML='<span class="bad">'+esc(e.mensagem)+'</span>';
     const run=Object.values(st.eventos).find(x=>x.status==='running');if(run)nodeState(run.id,'error')}
-  else if(e.type==='salvo'){logLine(e.erro?'<span class="warn">⚠ '+esc(e.erro)+'</span>':'💾 Salvo no histórico ('+e.total+' análises): <a href="/historico/" target="_blank" style="color:var(--acc)">abrir espelho em HTML</a> · <a href="/historico/historico.xlsx" style="color:var(--acc)">planilha</a>'+(e.github?' · enviado ao GitHub':''))}
+  else if(e.type==='salvo'){logLine(e.erro?'<span class="warn">⚠ '+esc(e.erro)+'</span>':'💾 Análise <b>'+esc(e.id)+'</b> salva no histórico ('+e.total+' no total): <a href="/historico/" target="_blank" style="color:var(--acc)">abrir espelho em HTML</a> · <a href="/historico/historico.xlsx" style="color:var(--acc)">planilha</a>'+(e.github?' · enviado ao GitHub':''))}
   else if(e.type==='dossie'){st.dossie=e.dados;$('anaMsg').textContent='';renderDossie(e.dados)}
 }
 
 /* ---------- dossiê ---------- */
-const PAL=['#4c8dff','#f08a24','#2fbf71','#c99bf0','#e6a817','#e5534b','#5fd0d0','#d26ea8','#8b93a5'];
 function renderDossie(d){
-  const v=d.veredito,c=d.custos,f=d.ficha;
-  const segs=[{n:'Lance',v:c.lance}].concat(c.itens.filter(i=>i.computa_no_total&&i.valor_calculado!=null).map(i=>({n:i.nome,v:i.valor_calculado})));
-  const tot=segs.reduce((a,s)=>a+s.v,0)||1;
-  const li=l=>l.length?'<ul>'+l.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'';
-  $('s5').classList.remove('hide');
-  $('s5').innerHTML=`<h2><span class="n">5</span>Dossiê de decisão</h2>
-  <div class="verd ${v.cor}"><b class="big">${esc(v.decisao)}</b><div style="flex:1;min-width:240px">
-   ${v.bloqueios.length?'<div class="bad"><b>Bloqueios</b>'+li(v.bloqueios)+'</div>':''}
-   ${v.atencoes.length?'<div class="warn"><b>Atenção</b>'+li(v.atencoes)+'</div>':''}
-   ${v.positivos.length?'<div class="ok"><b>A favor</b>'+li(v.positivos)+'</div>':''}</div>
-   <button id="btnPdf">⬇ Baixar dossiê em PDF</button></div>
-  <div class="kpis">
-   <div class="kpi"><small>Lance simulado</small><b>${brl(c.lance)}</b></div>
-   <div class="kpi"><small>Custo total</small><b>${brl(c.custo_total)}</b><small>+${c.acrescimo_pct}% sobre o lance</small></div>
-   <div class="kpi"><small>Só o que está no edital</small><b>${brl(c.subtotal_edital)}</b><small>+ estimativas ${brl(c.extras_estimados)} · seus ${brl(c.extras_usuario)}</small></div>
-   <div class="kpi"><small>Valor de revenda/mercado</small><b>${brl(c.valor_venda_ref)}</b></div>
-   <div class="kpi"><small>Lucro · margem</small><b class="${c.margem_pct<0?'bad':''}">${c.lucro!=null?brl(c.lucro)+' · '+c.margem_pct+'%':'—'}</b></div>
-   <div class="kpi"><small>Lance máximo recomendado</small><b>${brl(c.lance_maximo_recomendado)}</b></div></div>
-  ${d.aviso_modo?`<div class="warn">⚠ ${esc(d.aviso_modo)}</div>`:''}
-  <h2 style="margin-top:18px">Composição do custo</h2>
-  <div class="stack">${segs.map((s,i)=>`<div title="${esc(s.n)} ${brl(s.v)}" style="width:${s.v/tot*100}%;background:${PAL[i%PAL.length]}"></div>`).join('')}</div>
-  <div class="leg">${segs.map((s,i)=>`<span><i style="background:${PAL[i%PAL.length]}"></i>${esc(s.n)} ${brl(s.v)}</span>`).join('')}</div>
-  <div class="cols" style="margin-top:16px"><div><h2>Custos detalhados</h2><div class="tbl"><table>
-   <tr><th>Item</th><th>Valor</th><th>Pago a · quando · como</th></tr>
-   <tr><td>Lance arrematado</td><td>${brl(c.lance)}</td><td class="mut">vendedor / leiloeiro</td></tr>
-   ${c.itens.map(i=>`<tr><td>${esc(i.nome)}<div class="mut">${i.tipo==='pct_lance'&&i.valor!=null?i.valor+'% do lance':i.tipo==='diaria'?brl(i.valor)+' × '+i.quantidade+' dias':''} ${i.origem!=='edital'?'<span class="badge" style="background:#3a2a14;color:#f0b062">'+esc(i.origem)+'</span>':''}${i.obs?'<br>'+esc(i.obs):''}${i.fonte&&i.origem==='edital'?'<div class="quote">“'+esc(i.fonte)+'”'+(i.pagina?' <b>(p. '+i.pagina+')</b>':'')+'</div>':''}</div></td>
-    <td>${i.valor_calculado!=null?brl(i.valor_calculado):'<span class="warn">a confirmar</span>'}${i.computa_no_total?'':'<div class="mut">abatido do preço</div>'}</td>
-    <td class="mut">${esc([i.pago_a,i.quando,i.como].filter(Boolean).join(' · ')||'—')}</td></tr>`).join('')}
-   <tr><td><b>Total</b></td><td><b>${brl(c.custo_total)}</b></td><td></td></tr></table></div>
-   <p class="mut"><b>Como pagar:</b> ${esc(f.forma_pagamento||'—')} · <b>prazo:</b> ${esc(f.prazo_pagamento_texto||'—')}${f.parcelamento?'<br><b>Parcelamento:</b> '+esc(f.parcelamento):''}</p>
-   <h2>A quem pagar</h2><div class="tbl"><table>${c.por_beneficiario.map(b=>`<tr><td>${esc(b.pago_a)}</td><td>${brl(b.valor)}</td></tr>`).join('')}</table></div></div>
-  <div><h2>Prazos</h2><div class="tl">${d.prazos.map(p=>`<div class="${p.alerta?'al':''}"><b>${esc(p.data)}</b> — ${esc(p.evento)}${p.alerta?'<br><span class="warn">⚠ '+esc(p.alerta)+'</span>':''}</div>`).join('')||'<span class="mut">Nenhum prazo identificado.</span>'}</div>
-   <h2 style="margin-top:18px">Ficha do edital</h2><div class="mut">Tipo: ${esc(d.tipo_leilao)} · leiloeiro: ${esc(f.leiloeiro||'—')} ${f.leiloeiro_credenciado?'(credenciado)':''}<br>Processo: ${esc(f.processo||'—')} ${esc(f.juizo||'')}<br>Avaliação ${brl(f.valor_avaliacao)} · 1ª praça ${brl(f.lance_minimo_1)} · 2ª praça ${brl(f.lance_minimo_2)}<br>Comissão: ${f.comissao_pct!=null?f.comissao_pct+'%':'—'} · débitos: ${esc(f.debitos_responsabilidade||'—')}<br>${f.ocupacao?'Ocupação: '+esc(f.ocupacao):''}</div></div></div>
-  <h2 style="margin-top:18px">Valores citados no edital (texto literal)</h2>
-  <p class="mut">Toda passagem do PDF que cita R$ ou %, na ordem do edital — inclusive o que o app não soube classificar como custo.</p>
-  <div class="tbl"><table><tr><th>Pág.</th><th>Valores</th><th>Trecho do edital</th></tr>${(f.valores_encontrados||[]).map(t=>`<tr><td>${t.pagina||'—'}</td><td>${esc(t.valores.join(' · '))}</td><td class="mut">${esc(t.trecho)}</td></tr>`).join('')||'<tr><td colspan=3 class="mut">Nenhum valor encontrado.</td></tr>'}</table></div>
-  <h2 style="margin-top:18px">Pontos de atenção — leilão ${esc(d.tipo_leilao)}</h2>
-  ${d.pontos.map(p=>`<div class="pt ${p.severidade}"><b>${esc(p.titulo)}</b> — ${esc(p.descricao)}${p.fundamento?`<small>Fundamento: ${esc(p.fundamento)}</small>`:''}${p.trecho&&p.severidade!=='ok'?`<small>“${esc(p.trecho.slice(0,260))}”</small>`:''}</div>`).join('')}`;
+  $('s5').classList.remove('hide');$('s5').innerHTML=dossieHtml(d,{pdf:true});
   $('btnPdf').onclick=baixarPdf;$('s5').scrollIntoView({behavior:'smooth'});
 }
 async function baixarPdf(){

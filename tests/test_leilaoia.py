@@ -119,7 +119,7 @@ def test_historico_salva_planilha_e_html(tmp_path, monkeypatch):
         info = storage.salvar(d)
     assert info["total"] == 2          # duas análises seguidas não podem se sobrescrever
     wb = load_workbook(tmp_path / "historico.xlsx")
-    assert set(wb.sheetnames) == {"Analises", "Custos", "Pontos", "Valores_edital", "Prazos"}
+    assert set(wb.sheetnames) == {"Analises", "Custos", "Pontos", "Valores_edital", "Prazos", "Objetivo_perguntas"}
     assert wb["Analises"].max_row >= 2 and wb["Custos"].max_row > 2
     html = (tmp_path / "index.html").read_text(encoding="utf-8")
     assert "Histórico de Análises" in html and "edital_judicial_veiculo.pdf" in html
@@ -132,3 +132,46 @@ def test_api_grava_no_historico(tmp_path, monkeypatch):
     with (S / "edital_receita_federal.pdf").open("rb") as f:
         r = c.post("/api/analise", files={"edital": ("e.pdf", f, "application/pdf")})
     assert '"type": "salvo"' in r.text and (tmp_path / "historico.xlsx").exists()
+
+
+def test_ids_sequenciais(tmp_path, monkeypatch):
+    from leilaoia import storage
+    monkeypatch.setenv("DADOS_DIR", str(tmp_path))
+    lote = next(l for l in excel_db.carregar_base().lotes if l.id == "L002")
+    ids = []
+    for _ in range(3):
+        d = list(agents.executar((S / "edital_receita_federal.pdf").read_bytes(), "x.pdf", lote, Perfil(), Premissas()))[-1]["dados"]
+        ids.append(storage.salvar(d)["id"])
+    assert ids == ["AN-0001", "AN-0002", "AN-0003"]
+    next((tmp_path / "json").glob("AN-0003*")).unlink()   # apagar não reaproveita número
+    d = list(agents.executar((S / "edital_receita_federal.pdf").read_bytes(), "x.pdf", lote, Perfil(), Premissas()))[-1]["dados"]
+    assert storage.salvar(d)["id"] == "AN-0004"
+    assert gerar_pdf(d).startswith(b"%PDF")
+
+
+def _veredito(arq, lid, **perfil):
+    lote = next(l for l in excel_db.carregar_base().lotes if l.id == lid)
+    return list(agents.executar((S / arq).read_bytes(), arq, lote, Perfil(**perfil), Premissas()))[-1]["dados"]
+
+
+def test_respostas_do_objetivo_no_dossie():
+    d = _veredito("edital_judicial_veiculo.pdf", "L001", aceita_ocupado=False)
+    assert any("ocupado" in r["pergunta"] for r in d["respostas"])
+    assert d["respostas"][0]["resposta"] == "Revender com lucro"
+
+
+def test_resposta_nao_aceita_ocupado_bloqueia():
+    d = _veredito("edital_extrajudicial_imovel.pdf", "L003", orcamento_max=900000, aceita_ocupado=False)
+    assert any("não aceita bem ocupado" in b for b in d["veredito"]["bloqueios"])
+    assert d["veredito"]["decisao"] == "NÃO COMPRAR"
+
+
+def test_resposta_nao_aceita_debitos_e_pagamento():
+    d = _veredito("edital_extrajudicial_imovel.pdf", "L003", orcamento_max=900000, aceita_debitos=False, pagamento_imediato=False)
+    b = " ".join(d["veredito"]["bloqueios"])
+    assert "não aceita assumir débitos" in b and "não terá o valor total" in b
+
+
+def test_sem_respostas_nao_cria_bloqueio_novo():
+    d = _veredito("edital_extrajudicial_imovel.pdf", "L003", orcamento_max=900000)
+    assert not any("você respondeu" in b or "não terá" in b for b in d["veredito"]["bloqueios"])

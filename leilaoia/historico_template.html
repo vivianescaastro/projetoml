@@ -65,6 +65,7 @@ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);verti
 ul{margin:6px 0;padding-left:20px}
 </style>
 <style>
+.quote{font-style:italic;color:var(--mut);margin-top:4px;font-size:12.5px}.idtag{background:var(--acc);color:var(--accfg);border-radius:8px;padding:2px 10px;font-size:14px;margin-left:8px}.idc{font-weight:700;color:var(--acc);white-space:nowrap}
 .filtros{display:flex;gap:10px;flex-wrap:wrap}.filtros input,.filtros select{background:var(--panel2);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:8px 10px;font:inherit;min-width:0}
 tr.lin{cursor:pointer}tr.lin:hover,tr.lin.sel{background:var(--panel2)}
 .vb{font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}
@@ -87,43 +88,15 @@ const brl=v=>v==null?'—':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFracti
 let sel=null;
 function lista(){
   const q=$('q').value.toLowerCase(),fv=$('fv').value,ft=$('ft').value;
-  const ls=DATA.filter(d=>(!fv||d.veredito.decisao===fv)&&(!ft||d.tipo_leilao===ft)&&(!q||JSON.stringify([d.lote,d.ficha.processo,d.ficha.leiloeiro,d.ficha.descricao_bem,d.arquivo]).toLowerCase().includes(q)));
+  const ls=DATA.filter(d=>(!fv||d.veredito.decisao===fv)&&(!ft||d.tipo_leilao===ft)&&(!q||JSON.stringify([d.id,d.lote,d.ficha.processo,d.ficha.leiloeiro,d.ficha.descricao_bem,d.arquivo]).toLowerCase().includes(q)));
   $('cont').textContent=ls.length+' de '+DATA.length+' análises';
-  $('lista').innerHTML='<tr><th>Data</th><th>Bem</th><th>Tipo</th><th>Veredito</th><th>Lance</th><th>Custo total</th><th>Margem</th><th>Riscos altos</th></tr>'+
-  (ls.map(d=>`<tr class="lin ${d.id===sel?'sel':''}" data-id="${esc(d.id)}" tabindex="0"><td>${esc(d.gerado_em)}</td><td>${esc((d.lote&&d.lote.descricao)||d.ficha.descricao_bem||d.arquivo)}<div class="mut">${esc(d.arquivo)}</div></td><td>${esc(d.tipo_leilao)}</td>
-   <td><span class="vb ${d.veredito.cor}">${esc(d.veredito.decisao)}</span></td><td>${brl(d.custos.lance)}</td><td>${brl(d.custos.custo_total)}</td><td>${d.custos.margem_pct!=null?d.custos.margem_pct+'%':'—'}</td><td>${d.pontos.filter(p=>p.severidade==='alta').length}</td></tr>`).join('')||'<tr><td colspan=8 class="mut">Nenhuma análise salva ainda. Rode uma análise no app e ela aparece aqui.</td></tr>');
+  $('lista').innerHTML='<tr><th>ID</th><th>Data</th><th>Bem</th><th>Tipo</th><th>Veredito</th><th>Lance</th><th>Custo total</th><th>Margem</th><th>Riscos altos</th></tr>'+
+  (ls.map(d=>`<tr class="lin ${d.id===sel?'sel':''}" data-id="${esc(d.id)}" tabindex="0"><td class="idc">${esc(d.id)}</td><td>${esc(d.gerado_em)}</td><td>${esc((d.lote&&d.lote.descricao)||d.ficha.descricao_bem||d.arquivo)}<div class="mut">${esc(d.arquivo)}</div></td><td>${esc(d.tipo_leilao)}</td>
+   <td><span class="vb ${d.veredito.cor}">${esc(d.veredito.decisao)}</span></td><td>${brl(d.custos.lance)}</td><td>${brl(d.custos.custo_total)}</td><td>${d.custos.margem_pct!=null?d.custos.margem_pct+'%':'—'}</td><td>${d.pontos.filter(p=>p.severidade==='alta').length}</td></tr>`).join('')||'<tr><td colspan=9 class="mut">Nenhuma análise salva ainda. Rode uma análise no app e ela aparece aqui.</td></tr>');
   $('lista').querySelectorAll('tr.lin').forEach(r=>{const go=()=>{sel=r.dataset.id;renderDossie(DATA.find(d=>d.id===sel));lista();$('out').scrollIntoView({behavior:'smooth'})};r.onclick=go;r.onkeydown=e=>{if(e.key==='Enter')go()}});
 }
-const PAL=['#4c8dff','#f08a24','#2fbf71','#c99bf0','#e6a817','#e5534b','#5fd0d0','#d26ea8','#8b93a5'];
-function renderDossie(d){
-  const v=d.veredito,c=d.custos,f=d.ficha;
-  const segs=[{n:'Lance',v:c.lance}].concat(c.itens.filter(i=>i.computa_no_total&&i.valor_calculado!=null).map(i=>({n:i.nome,v:i.valor_calculado})));
-  const tot=segs.reduce((a,s)=>a+s.v,0)||1,li=l=>'<ul>'+l.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
-  const o=$('out');o.hidden=false;
-  o.innerHTML=`<h2>Dossiê da análise</h2>
-  <div class="verd ${v.cor}"><span class="big">${esc(v.decisao)}</span><div style="flex:1;min-width:230px">
-   ${v.bloqueios.length?'<div class="bad"><b>Bloqueios</b>'+li(v.bloqueios)+'</div>':''}${v.atencoes.length?'<div class="warn"><b>Atenção</b>'+li(v.atencoes)+'</div>':''}${v.positivos.length?'<div class="ok"><b>A favor</b>'+li(v.positivos)+'</div>':''}</div></div>
-  <div class="kpis"><div class="kpi"><small>Lance simulado</small><b>${brl(c.lance)}</b></div>
-   <div class="kpi"><small>Custo total (todos os custos)</small><b>${brl(c.custo_total)}</b><small>+${c.acrescimo_pct}% sobre o lance</small></div>
-   <div class="kpi"><small>Valor de revenda/mercado</small><b>${brl(c.valor_venda_ref)}</b></div>
-   <div class="kpi"><small>Lucro · margem</small><b class="${c.margem_pct<0?'bad':''}">${c.lucro!=null?brl(c.lucro)+' · '+c.margem_pct+'%':'—'}</b></div>
-   <div class="kpi"><small>Lance máximo recomendado</small><b>${brl(c.lance_maximo_recomendado)}</b></div></div>
-  <h2>Composição do custo</h2>
-  <div class="stack" role="img" aria-label="Composição do custo total">${segs.map((s,i)=>`<div title="${esc(s.n)} ${brl(s.v)}" style="width:${s.v/tot*100}%;background:${PAL[i%PAL.length]}"></div>`).join('')}</div>
-  <div class="leg">${segs.map((s,i)=>`<span><i style="background:${PAL[i%PAL.length]}"></i>${esc(s.n)} ${brl(s.v)}</span>`).join('')}</div>
-  <div class="cols" style="margin-top:18px"><div><h2>Custos detalhados</h2><div class="tbl"><table><tr><th>Item</th><th>Valor</th><th>Pago a · quando · como</th></tr>
-   <tr><td>Lance arrematado</td><td>${brl(c.lance)}</td><td class="mut">vendedor / leiloeiro</td></tr>
-   ${c.itens.map(i=>`<tr><td>${esc(i.nome)}<div class="mut">${i.tipo==='pct_lance'&&i.valor!=null?i.valor+'% do lance':i.tipo==='diaria'?brl(i.valor)+' × '+i.quantidade+' dias':''}${i.origem!=='edital'?' · <span class="warn">'+esc(i.origem)+'</span>':''}${i.obs?'<br>'+esc(i.obs):''}</div></td>
-   <td>${i.valor_calculado!=null?brl(i.valor_calculado):'<span class="warn">a confirmar</span>'}${i.computa_no_total?'':'<div class="mut">abatido do preço</div>'}</td><td class="mut">${esc([i.pago_a,i.quando,i.como].filter(Boolean).join(' · ')||'—')}</td></tr>`).join('')}
-   <tr><td><b>Total</b></td><td><b>${brl(c.custo_total)}</b></td><td></td></tr></table></div>
-   <p class="mut"><b>Como pagar:</b> ${esc(f.forma_pagamento||'—')} · <b>prazo:</b> ${esc(f.prazo_pagamento_texto||'—')}${f.parcelamento?'<br><b>Parcelamento:</b> '+esc(f.parcelamento):''}</p>
-   <h2>A quem pagar</h2><div class="tbl"><table>${c.por_beneficiario.map(b=>`<tr><td>${esc(b.pago_a)}</td><td>${brl(b.valor)}</td></tr>`).join('')}</table></div></div>
-  <div><h2>Prazos</h2><div class="tl">${d.prazos.map(p=>`<div class="${p.alerta?'al':''}"><b>${esc(p.data)}</b> — ${esc(p.evento)}${p.alerta?'<br><span class="warn">⚠ '+esc(p.alerta)+'</span>':''}</div>`).join('')||'<span class="mut">Nenhum prazo identificado.</span>'}</div>
-   <h2 style="margin-top:18px">Ficha do edital</h2><div class="mut">Tipo: ${esc(d.tipo_leilao)} · leiloeiro: ${esc(f.leiloeiro||'—')}<br>Processo: ${esc(f.processo||'—')} ${esc(f.juizo||'')}<br>Avaliação ${brl(f.valor_avaliacao)} · 1ª praça ${brl(f.lance_minimo_1)} · 2ª praça ${brl(f.lance_minimo_2)}<br>Comissão: ${f.comissao_pct!=null?f.comissao_pct+'%':'—'} · débitos: ${esc(f.debitos_responsabilidade||'—')}</div></div></div>
-  <h2 style="margin-top:18px">Pontos de atenção — leilão ${esc(d.tipo_leilao)}</h2>
-  ${d.pontos.map(p=>`<div class="pt ${p.severidade}"><b>${esc(p.titulo)}</b> — ${esc(p.descricao)}${p.fundamento?`<small>Fundamento: ${esc(p.fundamento)}</small>`:''}</div>`).join('')}`;
-}
-
+/*__DOSSIE_JS__*/
+function renderDossie(d){const o=$('out');o.hidden=false;o.innerHTML=dossieHtml(d,{pdf:false})}
 ['q','fv','ft'].forEach(i=>$(i).addEventListener('input',lista));
 lista();
 </script>

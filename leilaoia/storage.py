@@ -28,6 +28,23 @@ def pasta() -> Path:
     return d
 
 
+def _numero(nome: str) -> int:
+    m = re.match(r"AN-(\d+)", nome)
+    return int(m.group(1)) if m else 0
+
+
+def _proximo_id(d: Path) -> str:
+    """Próximo número sequencial. O contador fica em analises/contador.txt: apagar uma análise não reaproveita o número."""
+    ult = max([_numero(p.name) for p in (d / "json").glob("AN-*.json")] or [0])
+    cont = d / "contador.txt"
+    try:
+        ult = max(ult, int(cont.read_text().strip() or 0))
+    except (FileNotFoundError, ValueError):
+        pass
+    cont.write_text(str(ult + 1))
+    return f"AN-{ult + 1:04d}"
+
+
 def _slug(s: str) -> str:
     s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode()
     return re.sub(r"[^a-zA-Z0-9]+", "-", s).strip("-").lower()[:40] or "analise"
@@ -48,14 +65,18 @@ def _linhas(d: dict):
                f.get("processo"), f.get("data_praca1"), f.get("data_praca2"), f.get("lance_minimo_1"),
                f.get("lance_minimo_2"), f.get("comissao_pct"), f.get("prazo_pagamento_texto"), f.get("forma_pagamento"),
                f.get("debitos_responsabilidade"), "IA" if d["modo_leitura"] == "ia" else "regras",
-               " | ".join(v["bloqueios"]), " | ".join(v["atencoes"])]
+               " | ".join(v["bloqueios"]), " | ".join(v["atencoes"]),
+               d["perfil"]["objetivo"], d["perfil"].get("orcamento_max"), d["perfil"]["risco"], d["perfil"]["margem_alvo_pct"],
+               *[{True: "sim", False: "não", None: "não respondida"}[d["perfil"].get(k)] for k in ("pagamento_imediato", "aceita_ocupado", "aceita_debitos")],
+               d["perfil"].get("prazo_revenda_meses")]
     custos = [[i, bem, x["nome"], x["tipo"], x["valor"], x["quantidade"], x["valor_calculado"], x.get("pago_a"),
                x.get("quando"), x.get("como"), x["origem"], "sim" if x["computa_no_total"] else "não (abatido)",
                x.get("pagina"), x.get("fonte") if x["origem"] == "edital" else None] for x in c["itens"]]
     pontos = [[i, bem, p["severidade"], p["titulo"], p["descricao"], p.get("fundamento"), p.get("trecho")] for p in d["pontos"]]
     valores = [[i, bem, t.get("pagina"), " · ".join(t["valores"]), t["trecho"]] for t in f.get("valores_encontrados", [])]
     prazos = [[i, bem, p["data"], p["evento"], p.get("alerta")] for p in d["prazos"]]
-    return analise, custos, pontos, valores, prazos
+    qa = [[i, bem, r["pergunta"], r["resposta"]] for r in d.get("respostas", [])]
+    return analise, custos, pontos, valores, prazos, qa
 
 
 ABAS = {
@@ -63,12 +84,14 @@ ABAS = {
                  "Só edital", "Estimativas", "Informado por você", "Valor de referência", "Lucro", "Margem %",
                  "Lance máximo", "Riscos altos", "Riscos médios", "Leiloeiro", "Processo", "1ª praça", "2ª praça",
                  "Lance mín. 1ª", "Lance mín. 2ª", "Comissão %", "Prazo de pagamento", "Forma de pagamento",
-                 "Débitos", "Leitura", "Bloqueios", "Atenção"],
+                 "Débitos", "Leitura", "Bloqueios", "Atenção", "Objetivo", "Orçamento", "Risco", "Margem-alvo %",
+                 "Paga em 2 dias úteis?", "Aceita ocupado?", "Aceita débitos?", "Prazo de revenda (meses)"],
     "Custos": ["ID", "Bem", "Item", "Base", "Valor/%", "Qtd", "Valor calculado", "Pago a", "Quando", "Como", "Origem",
                "Soma no total", "Página", "Trecho literal do edital"],
     "Pontos": ["ID", "Bem", "Severidade", "Ponto", "Descrição", "Fundamento", "Trecho"],
     "Valores_edital": ["ID", "Bem", "Página", "Valores", "Trecho literal"],
     "Prazos": ["ID", "Bem", "Data", "Evento", "Alerta"],
+    "Objetivo_perguntas": ["ID", "Bem", "Pergunta", "Resposta"],
 }
 
 
@@ -83,7 +106,8 @@ def _planilha(dossies: list[dict], destino: Path) -> None:
             c.fill = PatternFill("solid", fgColor="1F3A5F")
         ws[n].freeze_panes = "A2"
     for d in dossies:
-        a, cu, po, va, pr = _linhas(d)
+        a, cu, po, va, pr, qa = _linhas(d)
+        for r in qa: ws["Objetivo_perguntas"].append(r)
         ws["Analises"].append(a)
         for r in cu: ws["Custos"].append(r)
         for r in po: ws["Pontos"].append(r)
@@ -102,14 +126,16 @@ def _planilha(dossies: list[dict], destino: Path) -> None:
 def reconstruir(d: Path | None = None) -> dict:
     d = d or pasta()
     dossies = []
-    for p in sorted((d / "json").glob("*.json"), reverse=True):
+    for p in sorted((d / "json").glob("AN-*.json"), key=lambda x: _numero(x.name), reverse=True):
         try:
             dossies.append(json.loads(p.read_text(encoding="utf-8")))
         except json.JSONDecodeError:
             continue
     _planilha(list(reversed(dossies)), d / "historico.xlsx")
     dados = json.dumps(dossies, ensure_ascii=False).replace("</", "<\\/")
-    (d / "index.html").write_text(TEMPLATE.read_text(encoding="utf-8").replace("/*__DATA__*/", dados), encoding="utf-8")
+    dossie_js = (Path(__file__).parent / "static" / "dossie.js").read_text(encoding="utf-8")
+    html = TEMPLATE.read_text(encoding="utf-8").replace("/*__DOSSIE_JS__*/", dossie_js).replace("/*__DATA__*/", dados)
+    (d / "index.html").write_text(html, encoding="utf-8")
     return {"analises": len(dossies)}
 
 
@@ -126,9 +152,10 @@ def _commit(d: Path) -> None:
 def salvar(dossie: dict) -> dict:
     d = pasta()
     with _LOCK:
-        ident = datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:-3] + "-" + _slug((dossie.get("lote") or {}).get("id") or dossie.get("arquivo", ""))
+        ident = _proximo_id(d)                     # número sequencial, nunca reutilizado
         dossie["id"] = ident
-        (d / "json" / f"{ident}.json").write_text(json.dumps(dossie, ensure_ascii=False, indent=1), encoding="utf-8")
+        nome = _slug((dossie.get("lote") or {}).get("id") or dossie.get("arquivo", ""))
+        (d / "json" / f"{ident}_{nome}.json").write_text(json.dumps(dossie, ensure_ascii=False, indent=1), encoding="utf-8")
         total = reconstruir(d)["analises"]
     if os.getenv("AUTO_COMMIT") == "1":
         threading.Thread(target=_commit, args=(d,), daemon=True).start()
