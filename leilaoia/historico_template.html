@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Histórico de Análises</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: página única em fluxo — escolha do cenário, diagrama dos 10 agentes animado, dossiê.
+   Paleta (dark-first, mesma identidade do app): grafite, laranja de decisão, verde de concluído. */
+:root{--bg:#0f1115;--panel:#171a21;--panel2:#1d212a;--line:#2a2f3a;--tx:#e8eaf0;--mut:#9aa3b2;--acc:#f08a24;--ok:#2fbf71;--warn:#e6a817;--bad:#e5534b;--info:#4c8dff;
+--okbg:#12301f;--warnbg:#33280d;--badbg:#35161a;--runbg:#3a2a14;--skip:#5b6272;--node:#222733;--nodeline:#4a5163;--accfg:#111;color-scheme:dark}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f6f7f9;--panel:#fff;--panel2:#eef1f5;--line:#d6dbe3;--tx:#1a1f29;--mut:#5b6474;--acc:#c9680a;--ok:#1b8a4b;--warn:#a87400;--bad:#c0392b;--info:#2f6fd6;
+--okbg:#e3f5ea;--warnbg:#fbf0d4;--badbg:#fbe4e1;--runbg:#fdebd5;--skip:#a2a9b6;--node:#f2f4f8;--nodeline:#98a1b3;--accfg:#fff;color-scheme:light}}
+:root[data-theme="light"]{--bg:#f6f7f9;--panel:#fff;--panel2:#eef1f5;--line:#d6dbe3;--tx:#1a1f29;--mut:#5b6474;--acc:#c9680a;--ok:#1b8a4b;--warn:#a87400;--bad:#c0392b;--info:#2f6fd6;
+--okbg:#e3f5ea;--warnbg:#fbf0d4;--badbg:#fbe4e1;--runbg:#fdebd5;--skip:#a2a9b6;--node:#f2f4f8;--nodeline:#98a1b3;--accfg:#fff;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;display:grid;gap:16px}
+h1{font-size:22px;margin:0}h1 b{color:var(--acc)}h2{font-size:16px;margin:0 0 12px;text-wrap:balance}
+.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.tag{font-size:12px;border:1px solid var(--warn);color:var(--warn);border-radius:99px;padding:2px 10px}
+.note{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:var(--mut);font-size:13.5px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+.sc{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.sc button{all:unset;box-sizing:border-box;cursor:pointer;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:4px}
+.sc button[aria-pressed="true"]{border-color:var(--acc);outline:1px solid var(--acc)}
+.sc button:focus-visible,.run:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.sc small{color:var(--mut)}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;background:var(--panel);border:1px solid var(--line);width:max-content}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.run{background:var(--acc);color:var(--accfg);border:0;border-radius:8px;padding:10px 18px;font:inherit;font-weight:700;cursor:pointer}
+.run.sec{background:var(--panel2);color:var(--tx);border:1px solid var(--line);font-weight:500}
+.run:disabled{opacity:.55;cursor:default}
+.mut{color:var(--mut)}.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.dia{overflow-x:auto}
+#pipe{width:100%;min-width:760px;height:auto;display:block;background:var(--panel2);border:1px solid var(--line);border-radius:12px}
+.nd rect,.nd polygon{fill:var(--node);stroke:var(--nodeline);stroke-width:1.6;transition:all .3s}
+.nd text{fill:var(--tx);font-size:12px;text-anchor:middle;pointer-events:none}
+.nd .ag{fill:var(--ok);font-size:10.5px}
+.nd{cursor:pointer}.nd.dec rect,.nd.dec polygon{stroke:var(--acc)}
+.nd.running rect,.nd.running polygon{stroke:var(--acc);fill:var(--runbg);animation:pulse 1s infinite}
+.nd.done rect,.nd.done polygon{stroke:var(--ok);fill:var(--okbg)}
+.nd.skipped{opacity:.4}.nd.sel rect,.nd.sel polygon{stroke-width:3.2}
+.ed{stroke:var(--nodeline);stroke-width:1.6;fill:none;marker-end:url(#ah);transition:stroke .3s}.ed.on{stroke:var(--ok)}
+@keyframes pulse{50%{stroke-width:3.6}}
+@media (prefers-reduced-motion:reduce){.nd.running rect,.nd.running polygon{animation:none}}
+#detail{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:13.5px;min-height:50px}
+#log{font-size:13px;margin-top:10px;display:grid;gap:3px;max-height:190px;overflow:auto}
+.verd{border-radius:12px;padding:18px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.verd.verde{background:var(--okbg);border:1px solid var(--ok)}.verd.amarelo{background:var(--warnbg);border:1px solid var(--warn)}.verd.vermelho{background:var(--badbg);border:1px solid var(--bad)}
+.verd .big{font-size:28px;font-weight:800;letter-spacing:.4px}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:14px 0}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}.kpi small{color:var(--mut);display:block;font-size:12px}.kpi b{font-size:19px;font-variant-numeric:tabular-nums}
+.cols{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr))}
+.tbl{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-weight:500;font-size:12px}
+.stack{display:flex;height:26px;border-radius:8px;overflow:hidden;margin:10px 0;border:1px solid var(--line)}
+.leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--mut)}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.pt{border-left:4px solid var(--line);padding:6px 10px;margin:6px 0;background:var(--panel2);border-radius:0 8px 8px 0;font-size:13.5px}
+.pt.alta{border-color:var(--bad)}.pt.media{border-color:var(--warn)}.pt.baixa{border-color:var(--info)}.pt.ok{border-color:var(--ok);opacity:.85}
+.pt small{display:block;color:var(--mut)}
+.tl{border-left:2px solid var(--line);margin-left:6px;padding-left:14px}.tl div{margin:8px 0;position:relative}.tl div:before{content:"";position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--info)}.tl div.al:before{background:var(--warn)}
+ul{margin:6px 0;padding-left:20px}
+</style>
+<style>
+.filtros{display:flex;gap:10px;flex-wrap:wrap}.filtros input,.filtros select{background:var(--panel2);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:8px 10px;font:inherit;min-width:0}
+tr.lin{cursor:pointer}tr.lin:hover,tr.lin.sel{background:var(--panel2)}
+.vb{font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.vb.verde{background:var(--okbg);color:var(--ok)}.vb.amarelo{background:var(--warnbg);color:var(--warn)}.vb.vermelho{background:var(--badbg);color:var(--bad)}
+a.dl{color:var(--acc)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>Leilão<b>IA</b> <span class="mut" style="font-weight:400">· histórico de análises</span></h1><span class="mut" id="cont"></span><a class="dl" href="historico.xlsx">⬇ planilha (historico.xlsx)</a></div>
+  <section class="card"><div class="filtros"><input id="q" placeholder="Buscar bem, processo, leiloeiro…" aria-label="Buscar"><select id="fv" aria-label="Veredito"><option value="">Todos os vereditos</option><option>COMPRAR</option><option>ATENÇÃO</option><option>NÃO COMPRAR</option></select><select id="ft" aria-label="Tipo"><option value="">Todos os tipos</option><option>Judicial</option><option>Receita Federal</option><option>Extrajudicial</option></select></div>
+  <div class="tbl" style="margin-top:12px"><table id="lista"></table></div></section>
+  <section class="card" id="out" hidden></section>
+</div>
+<script>
+const DATA=/*__DATA__*/;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const brl=v=>v==null?'—':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+let sel=null;
+function lista(){
+  const q=$('q').value.toLowerCase(),fv=$('fv').value,ft=$('ft').value;
+  const ls=DATA.filter(d=>(!fv||d.veredito.decisao===fv)&&(!ft||d.tipo_leilao===ft)&&(!q||JSON.stringify([d.lote,d.ficha.processo,d.ficha.leiloeiro,d.ficha.descricao_bem,d.arquivo]).toLowerCase().includes(q)));
+  $('cont').textContent=ls.length+' de '+DATA.length+' análises';
+  $('lista').innerHTML='<tr><th>Data</th><th>Bem</th><th>Tipo</th><th>Veredito</th><th>Lance</th><th>Custo total</th><th>Margem</th><th>Riscos altos</th></tr>'+
+  (ls.map(d=>`<tr class="lin ${d.id===sel?'sel':''}" data-id="${esc(d.id)}" tabindex="0"><td>${esc(d.gerado_em)}</td><td>${esc((d.lote&&d.lote.descricao)||d.ficha.descricao_bem||d.arquivo)}<div class="mut">${esc(d.arquivo)}</div></td><td>${esc(d.tipo_leilao)}</td>
+   <td><span class="vb ${d.veredito.cor}">${esc(d.veredito.decisao)}</span></td><td>${brl(d.custos.lance)}</td><td>${brl(d.custos.custo_total)}</td><td>${d.custos.margem_pct!=null?d.custos.margem_pct+'%':'—'}</td><td>${d.pontos.filter(p=>p.severidade==='alta').length}</td></tr>`).join('')||'<tr><td colspan=8 class="mut">Nenhuma análise salva ainda. Rode uma análise no app e ela aparece aqui.</td></tr>');
+  $('lista').querySelectorAll('tr.lin').forEach(r=>{const go=()=>{sel=r.dataset.id;renderDossie(DATA.find(d=>d.id===sel));lista();$('out').scrollIntoView({behavior:'smooth'})};r.onclick=go;r.onkeydown=e=>{if(e.key==='Enter')go()}});
+}
+const PAL=['#4c8dff','#f08a24','#2fbf71','#c99bf0','#e6a817','#e5534b','#5fd0d0','#d26ea8','#8b93a5'];
+function renderDossie(d){
+  const v=d.veredito,c=d.custos,f=d.ficha;
+  const segs=[{n:'Lance',v:c.lance}].concat(c.itens.filter(i=>i.computa_no_total&&i.valor_calculado!=null).map(i=>({n:i.nome,v:i.valor_calculado})));
+  const tot=segs.reduce((a,s)=>a+s.v,0)||1,li=l=>'<ul>'+l.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+  const o=$('out');o.hidden=false;
+  o.innerHTML=`<h2>Dossiê da análise</h2>
+  <div class="verd ${v.cor}"><span class="big">${esc(v.decisao)}</span><div style="flex:1;min-width:230px">
+   ${v.bloqueios.length?'<div class="bad"><b>Bloqueios</b>'+li(v.bloqueios)+'</div>':''}${v.atencoes.length?'<div class="warn"><b>Atenção</b>'+li(v.atencoes)+'</div>':''}${v.positivos.length?'<div class="ok"><b>A favor</b>'+li(v.positivos)+'</div>':''}</div></div>
+  <div class="kpis"><div class="kpi"><small>Lance simulado</small><b>${brl(c.lance)}</b></div>
+   <div class="kpi"><small>Custo total (todos os custos)</small><b>${brl(c.custo_total)}</b><small>+${c.acrescimo_pct}% sobre o lance</small></div>
+   <div class="kpi"><small>Valor de revenda/mercado</small><b>${brl(c.valor_venda_ref)}</b></div>
+   <div class="kpi"><small>Lucro · margem</small><b class="${c.margem_pct<0?'bad':''}">${c.lucro!=null?brl(c.lucro)+' · '+c.margem_pct+'%':'—'}</b></div>
+   <div class="kpi"><small>Lance máximo recomendado</small><b>${brl(c.lance_maximo_recomendado)}</b></div></div>
+  <h2>Composição do custo</h2>
+  <div class="stack" role="img" aria-label="Composição do custo total">${segs.map((s,i)=>`<div title="${esc(s.n)} ${brl(s.v)}" style="width:${s.v/tot*100}%;background:${PAL[i%PAL.length]}"></div>`).join('')}</div>
+  <div class="leg">${segs.map((s,i)=>`<span><i style="background:${PAL[i%PAL.length]}"></i>${esc(s.n)} ${brl(s.v)}</span>`).join('')}</div>
+  <div class="cols" style="margin-top:18px"><div><h2>Custos detalhados</h2><div class="tbl"><table><tr><th>Item</th><th>Valor</th><th>Pago a · quando · como</th></tr>
+   <tr><td>Lance arrematado</td><td>${brl(c.lance)}</td><td class="mut">vendedor / leiloeiro</td></tr>
+   ${c.itens.map(i=>`<tr><td>${esc(i.nome)}<div class="mut">${i.tipo==='pct_lance'&&i.valor!=null?i.valor+'% do lance':i.tipo==='diaria'?brl(i.valor)+' × '+i.quantidade+' dias':''}${i.origem!=='edital'?' · <span class="warn">'+esc(i.origem)+'</span>':''}${i.obs?'<br>'+esc(i.obs):''}</div></td>
+   <td>${i.valor_calculado!=null?brl(i.valor_calculado):'<span class="warn">a confirmar</span>'}${i.computa_no_total?'':'<div class="mut">abatido do preço</div>'}</td><td class="mut">${esc([i.pago_a,i.quando,i.como].filter(Boolean).join(' · ')||'—')}</td></tr>`).join('')}
+   <tr><td><b>Total</b></td><td><b>${brl(c.custo_total)}</b></td><td></td></tr></table></div>
+   <p class="mut"><b>Como pagar:</b> ${esc(f.forma_pagamento||'—')} · <b>prazo:</b> ${esc(f.prazo_pagamento_texto||'—')}${f.parcelamento?'<br><b>Parcelamento:</b> '+esc(f.parcelamento):''}</p>
+   <h2>A quem pagar</h2><div class="tbl"><table>${c.por_beneficiario.map(b=>`<tr><td>${esc(b.pago_a)}</td><td>${brl(b.valor)}</td></tr>`).join('')}</table></div></div>
+  <div><h2>Prazos</h2><div class="tl">${d.prazos.map(p=>`<div class="${p.alerta?'al':''}"><b>${esc(p.data)}</b> — ${esc(p.evento)}${p.alerta?'<br><span class="warn">⚠ '+esc(p.alerta)+'</span>':''}</div>`).join('')||'<span class="mut">Nenhum prazo identificado.</span>'}</div>
+   <h2 style="margin-top:18px">Ficha do edital</h2><div class="mut">Tipo: ${esc(d.tipo_leilao)} · leiloeiro: ${esc(f.leiloeiro||'—')}<br>Processo: ${esc(f.processo||'—')} ${esc(f.juizo||'')}<br>Avaliação ${brl(f.valor_avaliacao)} · 1ª praça ${brl(f.lance_minimo_1)} · 2ª praça ${brl(f.lance_minimo_2)}<br>Comissão: ${f.comissao_pct!=null?f.comissao_pct+'%':'—'} · débitos: ${esc(f.debitos_responsabilidade||'—')}</div></div></div>
+  <h2 style="margin-top:18px">Pontos de atenção — leilão ${esc(d.tipo_leilao)}</h2>
+  ${d.pontos.map(p=>`<div class="pt ${p.severidade}"><b>${esc(p.titulo)}</b> — ${esc(p.descricao)}${p.fundamento?`<small>Fundamento: ${esc(p.fundamento)}</small>`:''}</div>`).join('')}`;
+}
+
+['q','fv','ft'].forEach(i=>$(i).addEventListener('input',lista));
+lista();
+</script>
+</body>
+</html>

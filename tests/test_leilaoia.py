@@ -104,3 +104,29 @@ def test_base_fixa_e_subtotais():
     d = list(agents.executar((S / "edital_extrajudicial_imovel.pdf").read_bytes(), "x.pdf", lote, Perfil(), Premissas()))[-1]["dados"]["custos"]
     assert abs(d["subtotal_edital"] + d["extras_estimados"] + d["extras_usuario"] - d["custo_total"]) < 0.01
     assert d["extras_estimados"] > 0
+
+
+def test_historico_salva_planilha_e_html(tmp_path, monkeypatch):
+    import json as _j
+    from openpyxl import load_workbook
+    from leilaoia import storage
+    monkeypatch.setenv("DADOS_DIR", str(tmp_path))
+    lote = next(l for l in excel_db.carregar_base().lotes if l.id == "L001")
+    for arq in ("edital_judicial_veiculo.pdf", "edital_judicial_veiculo.pdf"):
+        d = list(agents.executar((S / arq).read_bytes(), arq, lote, Perfil(), Premissas()))[-1]["dados"]
+        info = storage.salvar(d)
+    assert info["total"] == 2          # duas análises seguidas não podem se sobrescrever
+    wb = load_workbook(tmp_path / "historico.xlsx")
+    assert set(wb.sheetnames) == {"Analises", "Custos", "Pontos", "Valores_edital", "Prazos"}
+    assert wb["Analises"].max_row >= 2 and wb["Custos"].max_row > 2
+    html = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert "Histórico de Análises" in html and "edital_judicial_veiculo.pdf" in html
+    assert len(list((tmp_path / "json").glob("*.json"))) == info["total"]
+
+
+def test_api_grava_no_historico(tmp_path, monkeypatch):
+    monkeypatch.setenv("DADOS_DIR", str(tmp_path))
+    c = TestClient(app)
+    with (S / "edital_receita_federal.pdf").open("rb") as f:
+        r = c.post("/api/analise", files={"edital": ("e.pdf", f, "application/pdf")})
+    assert '"type": "salvo"' in r.text and (tmp_path / "historico.xlsx").exists()

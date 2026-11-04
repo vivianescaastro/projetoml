@@ -27,6 +27,15 @@ Sem a chave, usa um extrator por regras (o dossiê avisa para revisar os valores
 O servidor usa **uma planilha fixa**: `leilaoia/data/base_leiloes.xlsx` (ou o caminho em `BASE_XLSX`). Sem ela, usa `base_exemplo.xlsx`.
 Para atualizar a base, substitua o arquivo e faça commit/redeploy. Colunas aceitas: ver `leilaoia/excel_db.py` (`COLUNAS`).
 
+## Histórico de análises (planilha + espelho em HTML)
+A cada análise o app grava em `analises/`:
+- `historico.xlsx` — abas **Analises** (1 linha por edital), **Custos** (com trecho literal e página), **Pontos**, **Valores_edital**, **Prazos**;
+- `index.html` — espelho para consulta (filtros + dossiê completo); no app: `/historico/`;
+- `json/` — dossiê completo de cada análise (fonte da verdade; planilha e HTML são regenerados dele com `python -m leilaoia.storage`).
+
+Para enviar ao GitHub automaticamente após cada análise: `AUTO_COMMIT=1` (usa o git/credenciais do ambiente, ex.: Codespaces). Sem isso, faça `git add analises && git commit && git push`.
+Pasta alternativa: `DADOS_DIR`. **Atenção:** são dados reais — mantenha o repositório privado e não publique `analises/` no GitHub Pages.
+
 ## Fidelidade na leitura do edital
 - Cada custo traz o **trecho literal** do edital e a **página**.
 - A seção "Valores citados no edital" lista **toda** passagem com R$ ou %, na ordem do PDF, mesmo as não classificadas.

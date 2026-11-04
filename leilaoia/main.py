@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-from . import agents, excel_db, llm
+from . import agents, excel_db, llm, storage
 from .dossie_pdf import gerar_pdf
 from .schemas import Lote, Perfil, Premissas
 
@@ -112,7 +112,15 @@ async def analisar(edital: UploadFile = File(...), perfil: str = Form("{}"), pre
 
     def gerar():
         for ev in agents.executar(pdf, edital.filename or "edital.pdf", lt, p, pr, tipo):
-            yield json.dumps(ev, ensure_ascii=False) + "\n"
+            if ev["type"] == "dossie":
+                try:
+                    info = storage.salvar(ev["dados"])      # grava JSON + planilha + espelho HTML
+                except Exception as exc:  # noqa: BLE001
+                    info = {"erro": f"Não foi possível salvar no histórico: {exc}"}
+                yield json.dumps(ev, ensure_ascii=False) + "\n"
+                yield json.dumps({"type": "salvo", **info}, ensure_ascii=False) + "\n"
+            else:
+                yield json.dumps(ev, ensure_ascii=False) + "\n"
 
     return StreamingResponse(gerar(), media_type="application/x-ndjson", headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"})
 
@@ -131,5 +139,9 @@ def exemplos():
     return [{"arquivo": p.name, "url": f"/exemplos/{p.name}"} for p in sorted((ROOT / "samples").glob("*.pdf"))]
 
 
+storage.pasta()
+if not (storage.pasta() / "index.html").exists():
+    storage.reconstruir()
+app.mount("/historico", StaticFiles(directory=storage.pasta(), html=True), name="historico")
 app.mount("/exemplos", StaticFiles(directory=ROOT / "samples"), name="exemplos")
 app.mount("/", StaticFiles(directory=ROOT / "static", html=True), name="static")

@@ -68,6 +68,7 @@ ul{margin:6px 0;padding-left:20px}
 <header>
   <h1>Leilão<span>IA</span> <span class="mut" style="font-weight:400">· cadeia de 10 agentes</span></h1>
   <span id="chipIA" class="chip">verificando…</span>
+  <a class="chip" href="/historico/" target="_blank" style="color:var(--acc);text-decoration:none">📋 Histórico de análises</a>
 </header>
 <main>
 
@@ -235,6 +236,7 @@ function onEvent(e){
     if(e.status==='running')$('anaMsg').textContent='Agente '+e.id+' — '+e.nome+'…'}
   else if(e.type==='erro'){logLine('✖ '+esc(e.mensagem),'bad');$('anaMsg').innerHTML='<span class="bad">'+esc(e.mensagem)+'</span>';
     const run=Object.values(st.eventos).find(x=>x.status==='running');if(run)nodeState(run.id,'error')}
+  else if(e.type==='salvo'){logLine(e.erro?'<span class="warn">⚠ '+esc(e.erro)+'</span>':'💾 Salvo no histórico ('+e.total+' análises): <a href="/historico/" target="_blank" style="color:var(--acc)">abrir espelho em HTML</a> · <a href="/historico/historico.xlsx" style="color:var(--acc)">planilha</a>'+(e.github?' · enviado ao GitHub':''))}
   else if(e.type==='dossie'){st.dossie=e.dados;$('anaMsg').textContent='';renderDossie(e.dados)}
 }
 
