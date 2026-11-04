@@ -37,6 +37,13 @@ class Lote(BaseModel):
     desconto_pct: Optional[float] = None    # calculado pelo Agente 2
 
 
+class Trecho(BaseModel):
+    """Passagem literal do edital com os valores (R$ / %) que ela cita."""
+    pagina: Optional[int] = None
+    trecho: str
+    valores: list[str] = Field(default_factory=list)
+
+
 class ItemCusto(BaseModel):
     nome: str
     tipo: Literal["fixo", "pct_lance", "pct_avaliacao", "diaria"] = "fixo"
@@ -47,7 +54,8 @@ class ItemCusto(BaseModel):
     quando: Optional[str] = None
     como: Optional[str] = None
     origem: Literal["edital", "estimado", "usuario"] = "edital"
-    fonte: Optional[str] = None             # trecho do edital
+    fonte: Optional[str] = None             # trecho LITERAL do edital que sustenta o custo
+    pagina: Optional[int] = None            # página do PDF onde está o trecho
     computa_no_total: bool = True           # caução abatida do preço não soma de novo
     obs: Optional[str] = None
 
@@ -87,6 +95,7 @@ class Edital(BaseModel):
     debitos_responsabilidade: Optional[str] = None
     ocupacao: Optional[str] = None
     custos: list[ItemCusto] = Field(default_factory=list)
+    valores_encontrados: list[Trecho] = Field(default_factory=list)   # TODO valor em R$/% citado no edital, com página
     pontos_atencao: list[Ponto] = Field(default_factory=list)
     lacunas: list[str] = Field(default_factory=list)
 

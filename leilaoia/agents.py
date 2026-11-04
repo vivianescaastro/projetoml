@@ -9,7 +9,7 @@ from typing import Iterator, Optional
 from . import costs, heuristics, llm
 from .checklists import rodar_checklist
 from .excel_db import norm_tipo
-from .pdf_reader import extrair_texto, normalizar
+from .pdf_reader import extrair_paginas, normalizar
 from .schemas import Edital, Lote, Perfil, Ponto, Premissas
 
 NOMES = {
@@ -65,8 +65,9 @@ def executar(pdf: bytes, nome_arquivo: str, lote: Optional[Lote], perfil: Perfil
         return _ev(id_, status, resumo, dados, t0)
 
     try:
-        texto, paginas = extrair_texto(pdf)           # leitura do PDF (insumo dos agentes 2 e 3)
-        texto_n = normalizar(texto)
+        paginas_txt = extrair_paginas(pdf)            # leitura do PDF (insumo dos agentes 2 e 3)
+        paginas = len(paginas_txt)
+        texto_n = normalizar("\n".join(paginas_txt))
         escaneado = len(texto_n) < 200 * max(paginas, 1) * 0.2
 
         # ---- Agente 1
@@ -125,7 +126,13 @@ def executar(pdf: bytes, nome_arquivo: str, lote: Optional[Lote], perfil: Perfil
         if ed is None:
             if escaneado:
                 aviso_modo = "PDF sem texto (escaneado): configure ANTHROPIC_API_KEY para leitura por IA/OCR."
-            ed = heuristics.extrair(texto_n)
+            ed = heuristics.extrair("\n".join(paginas_txt), paginas_txt)
+        if modo == "ia":                              # complementa a leitura da IA com a varredura literal
+            if not ed.valores_encontrados:
+                ed.valores_encontrados = heuristics.varrer_valores(paginas_txt)
+            for c in ed.custos:
+                if c.pagina is None:
+                    c.pagina = heuristics.localizar_pagina(c.fonte, paginas_txt)
         ed.tipo_leilao = tipo
         checklist = rodar_checklist(tipo, texto_n, ed)
         n_alerta = sum(1 for p in checklist if p.severidade != "ok")

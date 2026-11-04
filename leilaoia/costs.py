@@ -92,6 +92,8 @@ def calcular(ed: Edital, categoria: str, p: Premissas, lance: float, valor_merca
         linhas.append(linha)
     por_benef = OrderedDict([("Vendedor (lance arrematado)", lance), *por_benef.items()])
     total = lance + total_extras
+    sub = {o: round(sum(l["valor_calculado"] or 0 for l in linhas if l["origem"] == o and l["computa_no_total"]), 2)
+           for o in ("edital", "estimado", "usuario")}
     venda = p.valor_revenda or valor_mercado
     lucro = margem = None
     if venda:
@@ -102,7 +104,9 @@ def calcular(ed: Edital, categoria: str, p: Premissas, lance: float, valor_merca
     pct = sum((i.valor or 0) / 100 for i in itens if i.computa_no_total and i.tipo == "pct_lance" and i.valor is not None)
     return {
         "lance": round(lance, 2), "itens": linhas, "custos_extras": round(total_extras, 2),
-        "custo_total": round(total, 2), "acrescimo_pct": round(total_extras / lance * 100, 1) if lance else None,
+        "custo_total": round(total, 2),
+        "subtotal_edital": round(lance + sub["edital"], 2), "extras_edital": sub["edital"],
+        "extras_estimados": sub["estimado"], "extras_usuario": sub["usuario"], "acrescimo_pct": round(total_extras / lance * 100, 1) if lance else None,
         "por_beneficiario": [{"pago_a": k, "valor": round(v, 2)} for k, v in por_benef.items()],
         "valor_venda_ref": venda, "lucro": None if lucro is None else round(lucro, 2),
         "margem_pct": None if margem is None else round(margem, 1),

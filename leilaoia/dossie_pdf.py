@@ -74,7 +74,7 @@ def gerar_pdf(d: dict) -> bytes:
         if not i["computa_no_total"]:
             val += " (abatido)"
         det = " · ".join(x for x in [i.get("pago_a"), i.get("quando"), i.get("como")] if x) or "—"
-        rows.append([_p(i["nome"] + (f"\n{i['obs']}" if i.get("obs") else ""), N), _p(base, S), _p(val, N), _p(det, S), _p(i["origem"], S)])
+        rows.append([_p(i["nome"] + (f"\n{i['obs']}" if i.get("obs") else "") + (f"\n“{i['fonte'][:220]}”" + (f" (p. {i['pagina']})" if i.get("pagina") else "") if i.get("fonte") and i["origem"] == "edital" else ""), N), _p(base, S), _p(val, N), _p(det, S), _p(i["origem"], S)])
     rows.append([_p("<b>CUSTO TOTAL</b>", N), "", _p(brl(cu["custo_total"]), N), "", ""])
     t = Table(rows, colWidths=[6.0 * cm, 2.7 * cm, 2.7 * cm, 4.2 * cm, 1.8 * cm], repeatRows=1)
     t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), AZUL), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -82,6 +82,7 @@ def gerar_pdf(d: dict) -> bytes:
                            ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#EEF2F7")), ("FONTSIZE", (0, 0), (-1, 0), 8)]))
     story.append(t)
     story.append(Paragraph("Origem: <i>edital</i> = extraído do PDF; <i>estimado</i> = premissa ajustável (não consta no edital); <i>usuario</i> = informado por você.", S))
+    story.append(Paragraph(f"Subtotal só com o que consta no edital: <b>{brl(cu['subtotal_edital'])}</b> · estimativas: {brl(cu['extras_estimados'])} · informados por você: {brl(cu['extras_usuario'])}", N))
     story.append(Paragraph("3. A quem pagar", H2))
     t = Table([["Beneficiário", "Valor"]] + [[_p(b["pago_a"], N), _p(brl(b["valor"]), N)] for b in cu["por_beneficiario"]], colWidths=[11 * cm, 6.4 * cm])
     t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), AZUL), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey)]))
@@ -113,8 +114,14 @@ def gerar_pdf(d: dict) -> bytes:
         story.append(Paragraph("<b>Divergências entre planilha e edital:</b> " + escape(" | ".join(d["divergencias"])), N))
     if f.get("lacunas"):
         story.append(Paragraph("<b>Não encontrado no edital:</b> " + escape(" | ".join(f["lacunas"])), N))
+    if f.get("valores_encontrados"):
+        story.append(Paragraph("6. Valores citados no edital (texto literal)", H2))
+        t = Table([["Pág.", "Valores", "Trecho"]] + [[str(v.get("pagina") or "—"), _p(" · ".join(v["valores"]), S), _p(v["trecho"][:300], S)] for v in f["valores_encontrados"]],
+                  colWidths=[1.0 * cm, 3.6 * cm, 12.8 * cm], repeatRows=1)
+        t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), AZUL), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        story.append(t)
     # etapas
-    story.append(Paragraph("6. Trilha de decisão dos agentes", H2))
+    story.append(Paragraph("7. Trilha de decisão dos agentes", H2))
     t = Table([["#", "Agente", "Resultado"]] + [[("—" if e["status"] == "skipped" else str(e["id"] if e["id"] <= 10 else "")), _p(e["nome"] + (" (desviado)" if e["status"] == "skipped" else ""), N), _p(e["resumo"], S)] for e in d["etapas"]],
               colWidths=[0.8 * cm, 3.6 * cm, 13.0 * cm], repeatRows=1)
     t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), AZUL), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey), ("VALIGN", (0, 0), (-1, -1), "TOP")]))

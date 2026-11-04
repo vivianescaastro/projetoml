@@ -7,14 +7,14 @@ import re
 import pdfplumber
 
 
-def extrair_texto(pdf: bytes) -> tuple[str, int]:
-    paginas = []
+def extrair_paginas(pdf: bytes) -> list[str]:
     with pdfplumber.open(io.BytesIO(pdf)) as doc:
-        n = len(doc.pages)
-        for p in doc.pages:
-            paginas.append(p.extract_text() or "")
-    texto = "\n".join(paginas)
-    return texto, n
+        return [p.extract_text() or "" for p in doc.pages]
+
+
+def extrair_texto(pdf: bytes) -> tuple[str, int]:
+    paginas = extrair_paginas(pdf)
+    return "\n".join(paginas), len(paginas)
 
 
 def normalizar(texto: str) -> str:

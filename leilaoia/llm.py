@@ -28,6 +28,10 @@ Regras:
 - `pontos_atencao`: riscos específicos deste edital (quem responde pelos débitos, leiloeiro credenciado, preço vil,
   ocupação, prazos curtos, multas, venda no estado), com severidade alta/media/baixa, trecho e fundamento legal (CPC
   arts. 879, 886, 887, 891, 892, 895, 897, 901, 903 quando judicial).
+- FIDELIDADE: `fonte` de cada custo e de cada ponto deve ser cópia LITERAL do edital (sem parafrasear) e `pagina`
+  o número da página do PDF. Não some, não arredonde, não deduza valores que o edital não escreve.
+- `valores_encontrados`: liste na ordem do edital TODA passagem que cite valor em R$ ou percentual (trecho literal,
+  página e os valores), mesmo que você não saiba classificá-la como custo.
 - prazo_pagamento_dias: converta horas em dias (24h = 1)."""
 
 

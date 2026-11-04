@@ -5,7 +5,7 @@ import re
 from typing import Optional
 
 from .excel_db import norm_tipo, parse_brl
-from .schemas import Edital, ItemCusto
+from .schemas import Edital, ItemCusto, Trecho
 
 MONEY = r"R\$\s*(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:,\d{1,2})?)"
 PCT = r"(\d+(?:,\d+)?)\s*%"
@@ -123,7 +123,30 @@ def _debitos(t: str, ed: Edital) -> None:
             obs=None if v else "Valor não informado — pedir certidões de débitos."))
 
 
-def extrair(texto_bruto: str) -> Edital:
+def varrer_valores(paginas: list[str]) -> list[Trecho]:
+    """Lista, na ordem do edital, TODA passagem que cita valor em R$ ou percentual (texto literal + página)."""
+    out, vistos = [], set()
+    for n, pg in enumerate(paginas, 1):
+        pg = re.sub(r"\s+", " ", pg)
+        for fr in re.split(r"(?<!art)(?<!nº)(?<!n)(?<=[.;])\s+(?=[A-ZÀ-Ú0-9])", pg):
+            vals = [m.group(0) for m in re.finditer(MONEY, fr)] + [m.group(0) for m in re.finditer(PCT, fr)]
+            if vals and fr.strip() not in vistos:
+                vistos.add(fr.strip())
+                out.append(Trecho(pagina=n, trecho=fr.strip()[:500], valores=vals))
+    return out
+
+
+def localizar_pagina(trecho: Optional[str], paginas: list[str]) -> Optional[int]:
+    if not trecho:
+        return None
+    chave = re.sub(r"\s+", " ", trecho).strip()[:45]
+    for n, pg in enumerate(paginas, 1):
+        if chave and chave in re.sub(r"\s+", " ", pg):
+            return n
+    return None
+
+
+def extrair(texto_bruto: str, paginas: Optional[list[str]] = None) -> Edital:
     t = re.sub(r"\s+", " ", texto_bruto)
     ed = Edital()
     tipo, _ = detectar_tipo(t)
@@ -200,6 +223,10 @@ def extrair(texto_bruto: str) -> Edital:
             ed.custos.append(it)
     # dedup de caução/sinal e armazenagem em tipo_leilao RF
     ed.custos = [c for c in ed.custos if not (c.nome.startswith("Tributos") and c.valor is None and c.obs is None)]
+    if paginas:
+        ed.valores_encontrados = varrer_valores(paginas)
+        for c in ed.custos:
+            c.pagina = localizar_pagina(c.fonte, paginas)
     # lacunas
     for campo, rot in [("comissao_pct", "Comissão do leiloeiro"), ("prazo_pagamento_dias", "Prazo de pagamento"),
                        ("valor_avaliacao", "Valor de avaliação"), ("data_praca1", "Data da 1ª praça/leilão"),

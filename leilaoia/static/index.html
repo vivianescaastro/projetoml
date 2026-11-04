@@ -56,6 +56,7 @@ th{color:var(--mut);font-weight:500;font-size:12px}tr.sel{background:#2a2216}
 .pt{border-left:4px solid var(--line);padding:6px 10px;margin:6px 0;background:var(--panel2);border-radius:0 8px 8px 0;font-size:13.5px}
 .pt.alta{border-color:var(--bad)}.pt.media{border-color:var(--warn)}.pt.baixa{border-color:var(--info)}.pt.ok{border-color:var(--ok);opacity:.8}
 .pt small{display:block;color:var(--mut)}
+.quote{font-style:italic;color:var(--mut);margin-top:4px;font-size:12.5px}
 .tl{border-left:2px solid var(--line);margin-left:6px;padding-left:14px}.tl div{margin:8px 0;position:relative}.tl div:before{content:"";position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--info)}
 .tl div.al:before{background:var(--warn)}
 ul{margin:6px 0;padding-left:20px}
@@ -71,11 +72,8 @@ ul{margin:6px 0;padding-left:20px}
 <main>
 
 <section class="card" id="s1">
-  <h2><span class="n">1</span>Base de dados e objetivo da compra <span class="mut">(Agentes 1 e 2)</span></h2>
+  <h2><span class="n">1</span>Objetivo da compra e base de lotes <span class="mut">(Agentes 1 e 2)</span></h2>
   <div class="grid">
-    <label>Base de lotes (Excel)
-      <select id="baseSel"><option value="exemplo">Base de exemplo (10 lotes)</option><option value="upload">Enviar minha planilha…</option></select></label>
-    <label id="upWrap" class="hide">Planilha .xlsx<input type="file" id="baseFile" accept=".xlsx"></label>
     <label>Objetivo
       <select id="objetivo"><option value="revenda">Revenda</option><option value="investimento">Investimento</option><option value="uso">Uso próprio</option></select></label>
     <label>Orçamento máximo (R$)<input id="orc" type="number" min="0" step="1000" placeholder="ex.: 80000"></label>
@@ -89,7 +87,7 @@ ul{margin:6px 0;padding-left:20px}
     <label>Margem-alvo (%)<input id="margem" type="number" value="20" min="0" step="1"></label>
   </div>
   <div class="row"><button id="btnBuscar">Buscar lotes</button>
-    <a class="mut" href="/api/base/modelo">⬇ baixar modelo de planilha</a><span id="baseInfo" class="mut"></span></div>
+    <span id="baseInfo" class="mut"></span></div>
   <div id="baseAvisos" class="mut warn"></div>
 </section>
 
@@ -135,20 +133,14 @@ ul{margin:6px 0;padding-left:20px}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const brl=v=>v==null?'—':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const st={baseId:'exemplo',lote:null,pdf:null,dossie:null,eventos:{}};
+const st={baseId:'fixa',lote:null,pdf:null,dossie:null,eventos:{}};
 
 fetch('/api/health').then(r=>r.json()).then(h=>{const c=$('chipIA');c.textContent=h.ia?'IA ativa · leitura de PDF por Claude':'modo regras (sem chave de IA)';c.className='chip '+(h.ia?'on':'off')}).catch(()=>{$('chipIA').textContent='offline'});
 
 /* ---------- 1. base + perfil ---------- */
-$('baseSel').onchange=()=>{$('upWrap').classList.toggle('hide',$('baseSel').value!=='upload');if($('baseSel').value==='exemplo'){st.baseId='exemplo';$('baseInfo').textContent='';$('baseAvisos').textContent=''}};
-$('baseFile').onchange=async e=>{
-  const f=e.target.files[0];if(!f)return;const fd=new FormData();fd.append('arquivo',f);
-  $('baseInfo').textContent='validando planilha…';
-  const r=await fetch('/api/base',{method:'POST',body:fd});const j=await r.json();
-  if(!r.ok){$('baseInfo').innerHTML='<span class="bad">'+esc(j.detail)+'</span>';return}
-  st.baseId=j.base_id;$('baseInfo').innerHTML='<span class="ok">✔ '+j.lotes+' lotes válidos</span>';
-  $('baseAvisos').innerHTML=j.avisos.length?'⚠ '+j.avisos.map(esc).join('<br>⚠ '):'';
-};
+fetch('/api/base/atual').then(r=>r.json()).then(j=>{$('baseInfo').innerHTML=j.detail?'<span class="bad">'+esc(j.detail)+'</span>':
+  'Base fixa: <b>'+esc(j.arquivo)+'</b> · '+j.lotes+' lotes'+(j.exemplo?' <span class="warn">(base de exemplo — coloque a sua em leilaoia/data/base_leiloes.xlsx)</span>':'');
+  $('baseAvisos').innerHTML=(j.avisos||[]).length?'⚠ '+j.avisos.map(esc).join('<br>⚠ '):''});
 const perfil=()=>({objetivo:$('objetivo').value,orcamento_max:+$('orc').value||null,categoria:$('cat').value,uf:$('uf').value.trim().toUpperCase()||null,tipo_leilao:$('tipoF').value,risco:$('risco').value,margem_alvo_pct:+$('margem').value||0});
 $('btnBuscar').onclick=async()=>{
   const r=await fetch('/api/lotes/buscar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base_id:st.baseId,perfil:perfil()})});
@@ -262,7 +254,8 @@ function renderDossie(d){
    <button id="btnPdf">⬇ Baixar dossiê em PDF</button></div>
   <div class="kpis">
    <div class="kpi"><small>Lance simulado</small><b>${brl(c.lance)}</b></div>
-   <div class="kpi"><small>Custo total (todos os custos)</small><b>${brl(c.custo_total)}</b><small>+${c.acrescimo_pct}% sobre o lance</small></div>
+   <div class="kpi"><small>Custo total</small><b>${brl(c.custo_total)}</b><small>+${c.acrescimo_pct}% sobre o lance</small></div>
+   <div class="kpi"><small>Só o que está no edital</small><b>${brl(c.subtotal_edital)}</b><small>+ estimativas ${brl(c.extras_estimados)} · seus ${brl(c.extras_usuario)}</small></div>
    <div class="kpi"><small>Valor de revenda/mercado</small><b>${brl(c.valor_venda_ref)}</b></div>
    <div class="kpi"><small>Lucro · margem</small><b class="${c.margem_pct<0?'bad':''}">${c.lucro!=null?brl(c.lucro)+' · '+c.margem_pct+'%':'—'}</b></div>
    <div class="kpi"><small>Lance máximo recomendado</small><b>${brl(c.lance_maximo_recomendado)}</b></div></div>
@@ -273,7 +266,7 @@ function renderDossie(d){
   <div class="cols" style="margin-top:16px"><div><h2>Custos detalhados</h2><div class="tbl"><table>
    <tr><th>Item</th><th>Valor</th><th>Pago a · quando · como</th></tr>
    <tr><td>Lance arrematado</td><td>${brl(c.lance)}</td><td class="mut">vendedor / leiloeiro</td></tr>
-   ${c.itens.map(i=>`<tr><td>${esc(i.nome)}<div class="mut">${i.tipo==='pct_lance'&&i.valor!=null?i.valor+'% do lance':i.tipo==='diaria'?brl(i.valor)+' × '+i.quantidade+' dias':''} ${i.origem!=='edital'?'<span class="badge" style="background:#3a2a14;color:#f0b062">'+esc(i.origem)+'</span>':''}${i.obs?'<br>'+esc(i.obs):''}</div></td>
+   ${c.itens.map(i=>`<tr><td>${esc(i.nome)}<div class="mut">${i.tipo==='pct_lance'&&i.valor!=null?i.valor+'% do lance':i.tipo==='diaria'?brl(i.valor)+' × '+i.quantidade+' dias':''} ${i.origem!=='edital'?'<span class="badge" style="background:#3a2a14;color:#f0b062">'+esc(i.origem)+'</span>':''}${i.obs?'<br>'+esc(i.obs):''}${i.fonte&&i.origem==='edital'?'<div class="quote">“'+esc(i.fonte)+'”'+(i.pagina?' <b>(p. '+i.pagina+')</b>':'')+'</div>':''}</div></td>
     <td>${i.valor_calculado!=null?brl(i.valor_calculado):'<span class="warn">a confirmar</span>'}${i.computa_no_total?'':'<div class="mut">abatido do preço</div>'}</td>
     <td class="mut">${esc([i.pago_a,i.quando,i.como].filter(Boolean).join(' · ')||'—')}</td></tr>`).join('')}
    <tr><td><b>Total</b></td><td><b>${brl(c.custo_total)}</b></td><td></td></tr></table></div>
@@ -281,6 +274,9 @@ function renderDossie(d){
    <h2>A quem pagar</h2><div class="tbl"><table>${c.por_beneficiario.map(b=>`<tr><td>${esc(b.pago_a)}</td><td>${brl(b.valor)}</td></tr>`).join('')}</table></div></div>
   <div><h2>Prazos</h2><div class="tl">${d.prazos.map(p=>`<div class="${p.alerta?'al':''}"><b>${esc(p.data)}</b> — ${esc(p.evento)}${p.alerta?'<br><span class="warn">⚠ '+esc(p.alerta)+'</span>':''}</div>`).join('')||'<span class="mut">Nenhum prazo identificado.</span>'}</div>
    <h2 style="margin-top:18px">Ficha do edital</h2><div class="mut">Tipo: ${esc(d.tipo_leilao)} · leiloeiro: ${esc(f.leiloeiro||'—')} ${f.leiloeiro_credenciado?'(credenciado)':''}<br>Processo: ${esc(f.processo||'—')} ${esc(f.juizo||'')}<br>Avaliação ${brl(f.valor_avaliacao)} · 1ª praça ${brl(f.lance_minimo_1)} · 2ª praça ${brl(f.lance_minimo_2)}<br>Comissão: ${f.comissao_pct!=null?f.comissao_pct+'%':'—'} · débitos: ${esc(f.debitos_responsabilidade||'—')}<br>${f.ocupacao?'Ocupação: '+esc(f.ocupacao):''}</div></div></div>
+  <h2 style="margin-top:18px">Valores citados no edital (texto literal)</h2>
+  <p class="mut">Toda passagem do PDF que cita R$ ou %, na ordem do edital — inclusive o que o app não soube classificar como custo.</p>
+  <div class="tbl"><table><tr><th>Pág.</th><th>Valores</th><th>Trecho do edital</th></tr>${(f.valores_encontrados||[]).map(t=>`<tr><td>${t.pagina||'—'}</td><td>${esc(t.valores.join(' · '))}</td><td class="mut">${esc(t.trecho)}</td></tr>`).join('')||'<tr><td colspan=3 class="mut">Nenhum valor encontrado.</td></tr>'}</table></div>
   <h2 style="margin-top:18px">Pontos de atenção — leilão ${esc(d.tipo_leilao)}</h2>
   ${d.pontos.map(p=>`<div class="pt ${p.severidade}"><b>${esc(p.titulo)}</b> — ${esc(p.descricao)}${p.fundamento?`<small>Fundamento: ${esc(p.fundamento)}</small>`:''}${p.trecho&&p.severidade!=='ok'?`<small>“${esc(p.trecho.slice(0,260))}”</small>`:''}</div>`).join('')}`;
   $('btnPdf').onclick=baixarPdf;$('s5').scrollIntoView({behavior:'smooth'});

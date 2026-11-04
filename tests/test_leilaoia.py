@@ -83,3 +83,24 @@ def test_senha_de_acesso(monkeypatch):
     assert c.get("/").status_code == 401
     assert c.get("/", auth=("eu", "errada")).status_code == 401
     assert c.get("/", auth=("eu", "segredo")).status_code == 200
+
+
+@pytest.mark.parametrize("arq", ["edital_judicial_veiculo.pdf", "edital_receita_federal.pdf", "edital_extrajudicial_imovel.pdf"])
+def test_fidelidade_todo_valor_do_pdf_aparece(arq):
+    import re
+    from leilaoia.pdf_reader import extrair_paginas
+    pgs = extrair_paginas((S / arq).read_bytes())
+    ed = heuristics.extrair("\n".join(pgs), pgs)
+    no_pdf = set(re.findall(heuristics.MONEY, " ".join(pgs)))
+    listados = set(re.findall(heuristics.MONEY, " ".join(t.trecho for t in ed.valores_encontrados)))
+    assert no_pdf and no_pdf <= listados                       # nenhum R$ do edital ficou de fora
+    assert all(c.pagina == 1 for c in ed.custos if c.fonte)    # cada custo aponta a página
+    assert all(c.fonte in " ".join(pgs).replace("\n", " ") or c.fonte for c in ed.custos)
+
+
+def test_base_fixa_e_subtotais():
+    assert excel_db.carregar_base().lotes
+    lote = next(l for l in excel_db.carregar_base().lotes if l.id == "L003")
+    d = list(agents.executar((S / "edital_extrajudicial_imovel.pdf").read_bytes(), "x.pdf", lote, Perfil(), Premissas()))[-1]["dados"]["custos"]
+    assert abs(d["subtotal_edital"] + d["extras_estimados"] + d["extras_usuario"] - d["custo_total"]) < 0.01
+    assert d["extras_estimados"] > 0

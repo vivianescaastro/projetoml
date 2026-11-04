@@ -23,6 +23,20 @@ uvicorn leilaoia.main:app --reload
 ```
 Sem a chave, usa um extrator por regras (o dossiê avisa para revisar os valores).
 
+## Base de lotes (fixa)
+O servidor usa **uma planilha fixa**: `leilaoia/data/base_leiloes.xlsx` (ou o caminho em `BASE_XLSX`). Sem ela, usa `base_exemplo.xlsx`.
+Para atualizar a base, substitua o arquivo e faça commit/redeploy. Colunas aceitas: ver `leilaoia/excel_db.py` (`COLUNAS`).
+
+## Fidelidade na leitura do edital
+- Cada custo traz o **trecho literal** do edital e a **página**.
+- A seção "Valores citados no edital" lista **toda** passagem com R$ ou %, na ordem do PDF, mesmo as não classificadas.
+- O total separa: custos do edital · estimativas (não constam no edital) · valores informados por você.
+
+## Onde rodar
+- **GitHub Codespaces** (teste pelo tablet): Code → Codespaces → Create; o servidor sobe sozinho na porta 8000 (privada) e o navegador abre a URL encaminhada.
+- **Render** (permanente): ver abaixo.
+- **Tablet Android como servidor**: instale o Termux (F-Droid) e rode `bash scripts/termux_setup.sh`.
+
 ## Nuvem (privado)
 Defina `APP_PASSWORD` para exigir login (o navegador pede usuário/senha; o usuário pode ser qualquer um).
 

@@ -46,6 +46,16 @@ def health():
     return {"ok": True, "ia": llm.disponivel(), "modelo": llm.MODELO if llm.disponivel() else None}
 
 
+@app.get("/api/base/atual")
+def base_atual():
+    try:
+        p = excel_db.caminho_base_fixa()
+        base = excel_db.carregar_base("fixa")
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(500, str(exc))
+    return {"arquivo": p.name, "exemplo": p.name == "base_exemplo.xlsx", "lotes": len(base.lotes), "avisos": base.avisos[:30]}
+
+
 @app.get("/api/base/modelo")
 def baixar_modelo():
     return Response(excel_db.modelo_xlsx(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -77,7 +87,7 @@ def info_base(base_id: str):
 def buscar_lotes(corpo: dict):
     try:
         perfil = Perfil.model_validate(corpo.get("perfil") or {})
-        base = excel_db.carregar_base(corpo.get("base_id") or "exemplo")
+        base = excel_db.carregar_base(corpo.get("base_id") or "fixa")
     except (ValidationError, ValueError, FileNotFoundError) as exc:
         raise HTTPException(422, str(exc))
     lotes = excel_db.buscar(base, perfil)

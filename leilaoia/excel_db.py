@@ -159,8 +159,19 @@ def salvar_upload(conteudo: bytes, nome: str) -> tuple[str, Base]:
     return bid, base
 
 
-def carregar_base(base_id: str = "exemplo") -> Base:
-    if base_id == "exemplo":
+def caminho_base_fixa() -> Path:
+    """Base fornecida: env BASE_XLSX, senão data/base_leiloes.xlsx, senão a base de exemplo."""
+    env = __import__("os").getenv("BASE_XLSX")
+    for cand in ([Path(env)] if env else []) + [DATA_DIR / "base_leiloes.xlsx", DATA_DIR / "base_exemplo.xlsx"]:
+        if cand.exists():
+            return cand
+    raise FileNotFoundError("Nenhuma planilha de base encontrada (coloque em leilaoia/data/base_leiloes.xlsx).")
+
+
+def carregar_base(base_id: str = "fixa") -> Base:
+    if base_id == "fixa":
+        p = caminho_base_fixa()
+    elif base_id == "exemplo":
         p = DATA_DIR / "base_exemplo.xlsx"
     else:
         if not re.fullmatch(r"[0-9a-f]{12}", base_id):
