@@ -9,24 +9,31 @@ ROOT = Path(__file__).resolve().parent.parent
 S = ROOT / "leilaoia" / "samples"
 CEN = [
     ("L001", "edital_judicial_veiculo.pdf", "Judicial · veículo", "Honda Civic 2019 em leilão judicial",
-     Perfil(objetivo="revenda", orcamento_max=100000, risco="medio", margem_alvo_pct=20)),
+     Perfil(objetivo="revenda", orcamento_max=100000, risco="medio", margem_alvo_pct=20, prazo_revenda_meses=6,
+            pagamento_imediato=True, aceita_ocupado=True, aceita_debitos=True)),
     ("L002", "edital_receita_federal.pdf", "Receita Federal · veículo", "Fiat Toro 2020 apreendida pela Receita",
-     Perfil(objetivo="revenda", orcamento_max=100000, risco="medio", margem_alvo_pct=20)),
+     Perfil(objetivo="revenda", orcamento_max=100000, risco="medio", margem_alvo_pct=20, prazo_revenda_meses=3,
+            pagamento_imediato=True, aceita_ocupado=True, aceita_debitos=True)),
     ("L003", "edital_extrajudicial_imovel.pdf", "Extrajudicial · imóvel", "Apartamento em alienação fiduciária",
-     Perfil(objetivo="revenda", orcamento_max=650000, risco="medio", margem_alvo_pct=15)),
+     Perfil(objetivo="revenda", orcamento_max=650000, risco="medio", margem_alvo_pct=15, prazo_revenda_meses=6,
+            pagamento_imediato=True, aceita_ocupado=False, aceita_debitos=False)),
 ]
 base = excel_db.carregar_base()
 out = []
-for lid, arq, rot, tit, perfil in CEN:
+for n, (lid, arq, rot, tit, perfil) in enumerate(CEN, 1):
     lote = next(l for l in base.lotes if l.id == lid)
     lote.desconto_pct = round((1 - lote.lance_minimo / lote.valor_mercado) * 100, 1)
     evs = [e for e in agents.executar((S / arq).read_bytes(), arq, lote, perfil, Premissas())]
     assert not [e for e in evs if e["type"] == "erro"], arq
     for e in evs:
         e.pop("seg", None)
+        if e["type"] == "dossie":
+            e["dados"]["id"] = f"AN-{n:04d}"          # IDs de demonstração
     resumo = f"{perfil.objetivo} · orçamento R$ {perfil.orcamento_max:,.0f} · risco {perfil.risco} · margem-alvo {perfil.margem_alvo_pct:.0f}%".replace(",", ".")
     out.append({"rotulo": rot, "titulo": tit, "perfil": resumo, "eventos": evs})
-html = (ROOT / "scripts" / "demo_template.html").read_text().replace("/*__DATA__*/", json.dumps(out, ensure_ascii=False))
+dossie_js = (ROOT / "leilaoia" / "static" / "dossie.js").read_text()
+html = ((ROOT / "scripts" / "demo_template.html").read_text().replace("/*__DOSSIE_JS__*/", dossie_js)
+        .replace("/*__DATA__*/", json.dumps(out, ensure_ascii=False).replace("</", "<\\/")))
 (ROOT / "leilaoia" / "demo.html").write_text(html)
 print("demo.html:", len(html) // 1024, "KB")
 

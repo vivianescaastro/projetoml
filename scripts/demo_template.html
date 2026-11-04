@@ -58,18 +58,22 @@ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);verti
 .pt small{display:block;color:var(--mut)}
 .tl{border-left:2px solid var(--line);margin-left:6px;padding-left:14px}.tl div{margin:8px 0;position:relative}.tl div:before{content:"";position:absolute;left:-21px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--info)}.tl div.al:before{background:var(--warn)}
 ul{margin:6px 0;padding-left:20px}
+.quote{font-style:italic;color:var(--mut);margin-top:4px;font-size:12.5px}
+.idtag{background:var(--acc);color:var(--accfg);border-radius:8px;padding:2px 10px;font-size:14px;margin-left:8px}
 </style>
 
 <div class="wrap">
   <div class="top"><h1>Leilão<b>IA</b> <span class="mut" style="font-weight:400">· cadeia de 10 agentes</span></h1><span class="tag">demonstração · dados fictícios</span></div>
-  <div class="note">Esta é a versão estática: os 3 cenários abaixo foram processados pela cadeia real de agentes (leitura de edital em PDF, checklist por tipo de leilão, custos e veredito) e são reproduzidos aqui passo a passo. Para analisar o seu edital e baixar o dossiê em PDF, use a versão completa.</div>
+  <div class="note">Esta é a versão estática: os 3 cenários abaixo, cada um com suas respostas ao questionário do objetivo e um número de ID de análise, foram processados pela cadeia real de agentes (leitura de edital em PDF, checklist por tipo de leilão, custos e veredito) e são reproduzidos aqui passo a passo. Para analisar o seu edital e baixar o dossiê em PDF, use a versão completa.</div>
 
   <section class="card"><h2>1. Escolha um cenário</h2>
     <div class="sc" id="sc" role="group" aria-label="Cenários de demonstração"></div>
     <div class="row"><button class="run" id="go">▶ Rodar cadeia de agentes</button><button class="run sec" id="skip">Ver resultado direto</button><span class="mut" id="msg"></span></div>
   </section>
 
-  <section class="card"><h2>2. Cadeia de decisão</h2>
+  <section class="card"><h2>2. Objetivo da compra — perguntas e respostas (Agente 1)</h2><div class="tbl"><table id="qa"></table></div></section>
+
+  <section class="card"><h2>3. Cadeia de decisão</h2>
     <div class="dia"><svg id="pipe" viewBox="0 0 1240 450" role="img" aria-label="Fluxo dos 10 agentes: objetivo, banco de dados, categoria, tipo de leilão, especialista, análise de edital, prazos, custos, pagamento e dossiê"></svg></div>
     <div id="detail" class="mut">Clique em um agente para ver o que ele decidiu.</div>
     <div id="log"></div>
@@ -114,6 +118,7 @@ function showAgent(id){
   const e=evs[id];if(!e){$('detail').textContent='Este agente ainda não foi executado.';return}
   const d=e.dados||{};
   let h=`<b>${id<=10?'Agente '+id+' — ':''}${esc(e.nome)}</b> <span class="mut">(${e.status==='skipped'?'desviado':'concluído'})</span><div>${esc(e.resumo)}</div>`;
+  if(d.respostas)h+='<div class="tbl"><table>'+d.respostas.map(r=>`<tr><td>${esc(r.pergunta)}</td><td><b>${esc(r.resposta)}</b></td></tr>`).join('')+'</table></div>';
   if(d.checklist)h+=d.checklist.map(p=>`<div class="pt ${p.severidade}"><b>${esc(p.titulo)}</b> — ${esc(p.descricao)}${p.fundamento?`<small>${esc(p.fundamento)}</small>`:''}</div>`).join('');
   if(d.cronograma)h+=d.cronograma.map(p=>`<div>• ${esc(p.data)} — ${esc(p.evento)} ${p.alerta?'<span class="warn">⚠ '+esc(p.alerta)+'</span>':''}</div>`).join('');
   if(d.beneficiarios)h+='<div class="tbl"><table>'+d.itens.map(i=>`<tr><td>${esc(i.item)}</td><td>${brl(i.valor)}</td><td class="mut">${esc([i.pago_a,i.quando,i.como].filter(Boolean).join(' · ')||'—')}</td></tr>`).join('')+'</table></div>';
@@ -128,7 +133,8 @@ function drawScenarios(){
   $('sc').innerHTML=DEMO.map((c,i)=>`<button data-i="${i}" aria-pressed="${i===cur}"><span class="badge">${esc(c.rotulo)}</span><b>${esc(c.titulo)}</b><small>${esc(c.perfil)}</small></button>`).join('');
   $('sc').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(running)return;cur=+b.dataset.i;drawScenarios();reset()});
 }
-function reset(){token++;running=false;evs={};drawPipe();$('log').innerHTML='';$('out').hidden=true;$('detail').textContent='Clique em um agente para ver o que ele decidiu.';$('msg').textContent='';$('go').disabled=false;$('skip').disabled=false}
+function qa(){const e=DEMO[cur].eventos.find(x=>x.id===1&&x.status==='done');$('qa').innerHTML=((e&&e.dados.respostas)||[]).map(r=>`<tr><td>${esc(r.pergunta)}</td><td><b>${esc(r.resposta)}</b></td></tr>`).join('')}
+function reset(){qa();token++;running=false;evs={};drawPipe();$('log').innerHTML='';$('out').hidden=true;$('detail').textContent='Clique em um agente para ver o que ele decidiu.';$('msg').textContent='';$('go').disabled=false;$('skip').disabled=false}
 function apply(e,quiet){
   if(e.type==='agent'){evs[e.id]=e;nodeState(e.id,e.status);
     if(e.status==='done')logLine(`✔ <b>${e.id<=10?'Agente '+e.id+' · ':''}${esc(e.nome)}</b> — ${esc(e.resumo)}`);
@@ -144,34 +150,7 @@ $('go').onclick=async()=>{
 $('skip').onclick=()=>{reset();DEMO[cur].eventos.forEach(e=>apply(e,true))};
 
 /* ---- dossiê ---- */
-const PAL=['#4c8dff','#f08a24','#2fbf71','#c99bf0','#e6a817','#e5534b','#5fd0d0','#d26ea8','#8b93a5'];
-function renderDossie(d){
-  const v=d.veredito,c=d.custos,f=d.ficha;
-  const segs=[{n:'Lance',v:c.lance}].concat(c.itens.filter(i=>i.computa_no_total&&i.valor_calculado!=null).map(i=>({n:i.nome,v:i.valor_calculado})));
-  const tot=segs.reduce((a,s)=>a+s.v,0)||1,li=l=>'<ul>'+l.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
-  const o=$('out');o.hidden=false;
-  o.innerHTML=`<h2>3. Dossiê de decisão</h2>
-  <div class="verd ${v.cor}"><span class="big">${esc(v.decisao)}</span><div style="flex:1;min-width:230px">
-   ${v.bloqueios.length?'<div class="bad"><b>Bloqueios</b>'+li(v.bloqueios)+'</div>':''}${v.atencoes.length?'<div class="warn"><b>Atenção</b>'+li(v.atencoes)+'</div>':''}${v.positivos.length?'<div class="ok"><b>A favor</b>'+li(v.positivos)+'</div>':''}</div></div>
-  <div class="kpis"><div class="kpi"><small>Lance simulado</small><b>${brl(c.lance)}</b></div>
-   <div class="kpi"><small>Custo total (todos os custos)</small><b>${brl(c.custo_total)}</b><small>+${c.acrescimo_pct}% sobre o lance</small></div>
-   <div class="kpi"><small>Valor de revenda/mercado</small><b>${brl(c.valor_venda_ref)}</b></div>
-   <div class="kpi"><small>Lucro · margem</small><b class="${c.margem_pct<0?'bad':''}">${c.lucro!=null?brl(c.lucro)+' · '+c.margem_pct+'%':'—'}</b></div>
-   <div class="kpi"><small>Lance máximo recomendado</small><b>${brl(c.lance_maximo_recomendado)}</b></div></div>
-  <h2>Composição do custo</h2>
-  <div class="stack" role="img" aria-label="Composição do custo total">${segs.map((s,i)=>`<div title="${esc(s.n)} ${brl(s.v)}" style="width:${s.v/tot*100}%;background:${PAL[i%PAL.length]}"></div>`).join('')}</div>
-  <div class="leg">${segs.map((s,i)=>`<span><i style="background:${PAL[i%PAL.length]}"></i>${esc(s.n)} ${brl(s.v)}</span>`).join('')}</div>
-  <div class="cols" style="margin-top:18px"><div><h2>Custos detalhados</h2><div class="tbl"><table><tr><th>Item</th><th>Valor</th><th>Pago a · quando · como</th></tr>
-   <tr><td>Lance arrematado</td><td>${brl(c.lance)}</td><td class="mut">vendedor / leiloeiro</td></tr>
-   ${c.itens.map(i=>`<tr><td>${esc(i.nome)}<div class="mut">${i.tipo==='pct_lance'&&i.valor!=null?i.valor+'% do lance':i.tipo==='diaria'?brl(i.valor)+' × '+i.quantidade+' dias':''}${i.origem!=='edital'?' · <span class="warn">'+esc(i.origem)+'</span>':''}${i.obs?'<br>'+esc(i.obs):''}</div></td>
-   <td>${i.valor_calculado!=null?brl(i.valor_calculado):'<span class="warn">a confirmar</span>'}${i.computa_no_total?'':'<div class="mut">abatido do preço</div>'}</td><td class="mut">${esc([i.pago_a,i.quando,i.como].filter(Boolean).join(' · ')||'—')}</td></tr>`).join('')}
-   <tr><td><b>Total</b></td><td><b>${brl(c.custo_total)}</b></td><td></td></tr></table></div>
-   <p class="mut"><b>Como pagar:</b> ${esc(f.forma_pagamento||'—')} · <b>prazo:</b> ${esc(f.prazo_pagamento_texto||'—')}${f.parcelamento?'<br><b>Parcelamento:</b> '+esc(f.parcelamento):''}</p>
-   <h2>A quem pagar</h2><div class="tbl"><table>${c.por_beneficiario.map(b=>`<tr><td>${esc(b.pago_a)}</td><td>${brl(b.valor)}</td></tr>`).join('')}</table></div></div>
-  <div><h2>Prazos</h2><div class="tl">${d.prazos.map(p=>`<div class="${p.alerta?'al':''}"><b>${esc(p.data)}</b> — ${esc(p.evento)}${p.alerta?'<br><span class="warn">⚠ '+esc(p.alerta)+'</span>':''}</div>`).join('')||'<span class="mut">Nenhum prazo identificado.</span>'}</div>
-   <h2 style="margin-top:18px">Ficha do edital</h2><div class="mut">Tipo: ${esc(d.tipo_leilao)} · leiloeiro: ${esc(f.leiloeiro||'—')}<br>Processo: ${esc(f.processo||'—')} ${esc(f.juizo||'')}<br>Avaliação ${brl(f.valor_avaliacao)} · 1ª praça ${brl(f.lance_minimo_1)} · 2ª praça ${brl(f.lance_minimo_2)}<br>Comissão: ${f.comissao_pct!=null?f.comissao_pct+'%':'—'} · débitos: ${esc(f.debitos_responsabilidade||'—')}</div></div></div>
-  <h2 style="margin-top:18px">Pontos de atenção — leilão ${esc(d.tipo_leilao)}</h2>
-  ${d.pontos.map(p=>`<div class="pt ${p.severidade}"><b>${esc(p.titulo)}</b> — ${esc(p.descricao)}${p.fundamento?`<small>Fundamento: ${esc(p.fundamento)}</small>`:''}</div>`).join('')}`;
-}
+/*__DOSSIE_JS__*/
+function renderDossie(d){const o=$('out');o.hidden=false;o.innerHTML=dossieHtml(d,{pdf:false})}
 drawScenarios();reset();
 </script>
