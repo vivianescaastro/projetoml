@@ -1,10 +1,12 @@
 {
   "url": "https://www25.receita.fazenda.gov.br/sle-sociedade/portal",
   "ufs": [
-    "SÃO PAULO"
+    "SÃO PAULO",
+    "RIO DE JANEIRO",
+    "MINAS GERAIS"
   ],
-  "tipos_regex": "NOTEBOOK",
-  "baixar_edital_se_tipo_regex": "NOTEBOOK",
+  "tipos_regex": "ACESS[ÓO]RIO|COSM[ÉE]TICO|REL[ÓO]GIO",
+  "baixar_edital_se_tipo_regex": "CELULAR",
   "so_editais_abertos_para_pdf": true,
-  "tipos_descricao": "notebook"
+  "tipos_descricao": "acessórios, cosmético, relógio"
 }
