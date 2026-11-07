@@ -2,6 +2,11 @@ name: Coleta de leilões
 
 on:
   workflow_dispatch:   # só manual: aba Actions > Coleta de leilões > Run workflow
+    inputs:
+      branch:
+        description: "Branch com o código da coleta (e onde o resultado é gravado)"
+        required: true
+        default: "claude/phantom-playwright-automation-hfsa6w"
 
 permissions:
   contents: write
@@ -16,6 +21,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
 
       - uses: actions/setup-python@v5
         with:
@@ -40,6 +47,8 @@ jobs:
             data/historico.json
 
       - name: Gravar histórico e página no repositório
+        env:
+          BRANCH: ${{ inputs.branch }}
         run: |
           git config user.name "coleta-leiloes[bot]"
           git config user.email "actions@users.noreply.github.com"
@@ -48,6 +57,6 @@ jobs:
             echo "Sem mudanças para gravar."
           else
             git commit -m "Atualiza coleta de leilões"
-            git pull --rebase origin "${GITHUB_REF_NAME}"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
+            git pull --rebase origin "${BRANCH}"
+            git push origin "HEAD:${BRANCH}"
           fi
