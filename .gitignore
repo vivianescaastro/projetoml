@@ -1,0 +1,4 @@
+__pycache__/
+node_modules/
+# versão antiga em JavaScript, vídeo e capturas de teste (só locais)
+receita-leilao/
