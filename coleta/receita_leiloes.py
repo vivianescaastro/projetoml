@@ -56,8 +56,64 @@ def agora():
     return datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _marcar_uf(page, uf):
+    """Marca a UF pelo nome exato (evita 'MATO GROSSO' pegar 'MATO GROSSO DO SUL')."""
+    rotulo = page.locator("label").filter(has_text=re.compile(rf"^\s*{re.escape(uf)}\s*\d*\s*$", re.I))
+    rotulo.locator("input[type=checkbox]").first.check()
+
+
+def _painel(page, titulo):
+    return (page.locator("div,section")
+            .filter(has=page.get_by_text(titulo, exact=True))
+            .filter(has=page.locator("label:has(input[type=checkbox])")).last)
+
+
+def _abrir_portal(page):
+    page.goto(CONFIG["url"], wait_until="load", timeout=60000)
+    page.locator("label:has(input[type=checkbox])").first.wait_for(timeout=60000)
+
+
+def descobrir_ufs(page):
+    """Lê no portal a lista de estados que têm leilão no momento."""
+    _abrir_portal(page)
+    _painel(page, "UF").locator("button:has(.glyphicon-plus)").first.click()
+    nomes = _painel(page, "UF").locator("label").all_inner_texts()
+    ufs = [re.sub(r"\s*\d+\s*$", "", n).strip() for n in nomes]
+    return sorted(u for u in ufs if u)
+
+
+def filtrar_uf(page, uf, tipos_re):
+    """Aplica o filtro (um estado + tipos de lote) e devolve os editais com lotes."""
+    _abrir_portal(page)
+    _painel(page, "UF").locator("button:has(.glyphicon-plus)").first.click()
+    _marcar_uf(page, uf)
+    _painel(page, "Tipo de Lote").locator("button:has(.glyphicon-plus)").first.click()
+    marcas = page.locator("label", has_text=tipos_re).locator("input[type=checkbox]")
+    for i in range(marcas.count()):
+        marcas.nth(i).check()
+    for b in page.get_by_role("button", name=re.compile("Aplicar Filtro")).filter(visible=True).all():
+        b.click()
+    try:
+        page.wait_for_load_state("networkidle", timeout=15000)
+    except Exception:
+        pass
+    page.wait_for_timeout(1500)
+    bruto = page.evaluate(JS_EXTRAI)
+    # a página repete o cabeçalho do edital (tabela-resumo e tabela de lotes): junta por número
+    mapa = {}
+    for e in bruto:
+        if e["edital"] in mapa:
+            mapa[e["edital"]]["lotes"].extend(e["lotes"])
+        else:
+            mapa[e["edital"]] = e
+    for e in mapa.values():
+        e["uf"] = uf
+    print(f"  {uf}: {len(mapa)} editais, {sum(len(e['lotes']) for e in mapa.values())} lotes (tipos marcados: {marcas.count()})")
+    return list(mapa.values())
+
+
 def coletar(baixar_pdf=True):
-    """Roda o navegador e devolve a lista de editais (com lotes) e os PDFs baixados."""
+    """Roda o navegador e devolve a lista de editais (com lotes e UF) e os PDFs baixados."""
     tipos_re = re.compile(CONFIG["tipos_regex"], re.I)
     pdf_re = re.compile(CONFIG["baixar_edital_se_tipo_regex"], re.I)
     with sync_playwright() as p:
@@ -66,41 +122,22 @@ def coletar(baixar_pdf=True):
             opts["executable_path"] = os.environ["PW_EXECUTABLE"]
         browser = p.chromium.launch(**opts)
         ctx = browser.new_context(viewport={"width": 1280, "height": 1000}, accept_downloads=True)
-        page = ctx.new_page()
-        page.goto(CONFIG["url"], wait_until="load", timeout=60000)
-        page.locator("label:has(input[type=checkbox])").first.wait_for(timeout=60000)
 
-        def painel(titulo):
-            return (page.locator("div,section")
-                    .filter(has=page.get_by_text(titulo, exact=True))
-                    .filter(has=page.locator("label:has(input[type=checkbox])")).last)
-
-        painel("UF").locator("button:has(.glyphicon-plus)").first.click()
-        for uf in CONFIG["ufs"]:
-            page.locator("label", has_text=uf).locator("input[type=checkbox]").first.check()
-            print("UF marcada:", uf)
-        painel("Tipo de Lote").locator("button:has(.glyphicon-plus)").first.click()
-        marcas = page.locator("label", has_text=tipos_re).locator("input[type=checkbox]")
-        for i in range(marcas.count()):
-            marcas.nth(i).check()
-        print("Tipos de lote marcados:", marcas.count())
-        for b in page.get_by_role("button", name=re.compile("Aplicar Filtro")).filter(visible=True).all():
-            b.click()
-        try:
-            page.wait_for_load_state("networkidle", timeout=15000)
-        except Exception:
-            pass
-        page.wait_for_timeout(2000)
-
-        bruto = page.evaluate(JS_EXTRAI)
-        # a página repete o cabeçalho do edital (tabela-resumo e tabela de lotes): junta por número
-        mapa = {}
-        for e in bruto:
-            if e["edital"] in mapa:
-                mapa[e["edital"]]["lotes"].extend(e["lotes"])
-            else:
-                mapa[e["edital"]] = e
-        editais = list(mapa.values())
+        ufs = CONFIG["ufs"]
+        if any(u.upper() in ("TODOS", "TODOS OS ESTADOS") for u in ufs):
+            pg = ctx.new_page()
+            ufs = descobrir_ufs(pg)
+            pg.close()
+            print("Estados com leilão no portal:", ", ".join(ufs))
+        editais_por_nome = {}
+        for uf in ufs:
+            pg = ctx.new_page()
+            try:
+                for e in filtrar_uf(pg, uf, tipos_re):
+                    editais_por_nome.setdefault(e["edital"], e)
+            finally:
+                pg.close()
+        editais = list(editais_por_nome.values())
         if not editais:
             raise RuntimeError("Nenhum edital extraído: o portal mudou ou o filtro não retornou nada.")
 
@@ -153,7 +190,7 @@ def atualizar_historico(editais):
     visto = set()
     novos = alterados = 0
     for e in editais:
-        h["editais"][e["edital"]] = {k: e[k] for k in ("edital", "href", "orgao", "propostas_ate", "lances", "total_lotes_edital", "pdf", "lotes_interesse")} | {
+        h["editais"][e["edital"]] = {k: e[k] for k in ("edital", "href", "uf", "orgao", "propostas_ate", "lances", "total_lotes_edital", "pdf", "lotes_interesse")} | {
             "ultima_vez": ts, "ativo": True}
         for l in e["lotes"]:
             chave = f"{e['edital']}|{l['lote']}"

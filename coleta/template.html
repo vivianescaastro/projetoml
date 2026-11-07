@@ -8,6 +8,9 @@
 @media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f6f7f9;--panel:#fff;--panel2:#eef1f5;--line:#d6dbe3;--tx:#1a1f29;--mut:#5b6474;--acc:#c9680a;--accfg:#fff;--ok:#1b8a4b;--okbg:#e3f5ea;--warn:#a87400;--warnbg:#fbf0d4;--info:#2f6fd6;color-scheme:light}}
 :root[data-theme="light"]{--bg:#f6f7f9;--panel:#fff;--panel2:#eef1f5;--line:#d6dbe3;--tx:#1a1f29;--mut:#5b6474;--acc:#c9680a;--accfg:#fff;--ok:#1b8a4b;--okbg:#e3f5ea;--warn:#a87400;--warnbg:#fbf0d4;--info:#2f6fd6;color-scheme:light}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+a{color:var(--info)}
+a.btn{color:var(--tx)}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;display:grid;gap:16px}
@@ -63,7 +66,7 @@ td a{color:var(--info);text-decoration:none;font-weight:600}td a:hover{text-deco
     <div class="kpis" style="margin-top:14px" id="kpis"></div>
   </section>
 
-  <section class="card"><h2>Editais encontrados</h2><div class="eds" id="eds"></div></section>
+  <section class="card"><h2>Editais encontrados <span class="mut" style="font-weight:400;font-size:13px">· abertos primeiro, prazo mais próximo no topo</span></h2><div class="eds" id="eds"></div><div class="foot"><button class="btn sec" id="edMore" hidden></button></div></section>
 
   <section class="card">
     <h2>Lotes</h2>
@@ -74,8 +77,9 @@ td a{color:var(--info);text-decoration:none;font-weight:600}td a:hover{text-deco
       <label>Ordenar<select id="fOrd"><option value="asc">Menor preço</option><option value="desc">Maior preço</option><option value="lote">Número do lote</option></select></label>
       <label>Buscar tipo<input type="search" id="fQ" placeholder="ex.: celular"></label>
     </div>
+    <div class="chips" id="ufs" role="group" aria-label="Estados" style="margin-bottom:8px"></div>
     <div class="chips" id="tipos" role="group" aria-label="Tipos de lote" style="margin-bottom:12px"></div>
-    <div class="tbl"><table><thead><tr><th>Lote</th><th>Edital</th><th>Tipo</th><th>Situação</th><th class="r">Preço mínimo</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="tbl"><table><thead><tr><th>Lote</th><th>UF</th><th>Edital</th><th>Tipo</th><th>Situação</th><th class="r">Preço mínimo</th></tr></thead><tbody id="rows"></tbody></table></div>
     <div class="foot"><span class="mut" id="cnt"></span><button class="btn sec" id="more" hidden>Mostrar mais</button></div>
   </section>
 </div>
@@ -88,36 +92,48 @@ const brl=v=>v==null?'—':v.toLocaleString('pt-BR',{style:'currency',currency:'
 const short=n=>{const m=/^(\d+)\/0*(\d+)\/(\d{4})\s*(.*)$/.exec(n);return m?{num:`${+m[2]}/${m[3]}`,cid:m[4]}:{num:n,cid:''}};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ultima=H.ultima_execucao, ex=H.execucoes[H.execucoes.length-1]||{};
-const D={editais:Object.values(H.editais).filter(e=>e.ativo).map((e,i)=>({...e,i,s:short(e.edital),lotes:[]}))};
+const pd=s=>{const m=/(\d+)\/(\d+)\/(\d+)\D+(\d+):(\d+)/.exec(s||'');return m?m[3]+m[2].padStart(2,'0')+m[1].padStart(2,'0')+m[4].padStart(2,'0')+m[5]:'99999999999'};
+const D={editais:Object.values(H.editais).filter(e=>e.ativo).map(e=>({...e,uf:e.uf||'—',s:short(e.edital),lotes:[]}))};
+D.editais.forEach(e=>{e.aberto0=0});
 const byName=Object.fromEntries(D.editais.map(e=>[e.edital,e]));
 const todos=[];
-Object.values(H.lotes).forEach(r=>{const e=byName[r.edital];if(!e&&r.ativo)return;const l={...r,e:e||{i:-1,s:short(r.edital),href:''},tipos:r.tipo.split(',').map(t=>t.trim())};todos.push(l);if(e&&r.ativo)e.lotes.push(l)});
+Object.values(H.lotes).forEach(r=>{const e=byName[r.edital];if(!e&&r.ativo)return;const l={...r,e:e||{i:-1,uf:(H.editais[r.edital]||{}).uf||'—',s:short(r.edital),href:''},tipos:r.tipo.split(',').map(t=>t.trim())};todos.push(l);if(e&&r.ativo)e.lotes.push(l)});
 D.editais.forEach(e=>{e.aberto=e.lotes.length>0&&e.lotes.every(l=>l.situacao==='Aberto para Proposta')});
+D.editais.sort((a,b)=>(b.aberto-a.aberto)||pd(a.propostas_ate).localeCompare(pd(b.propostas_ate))).forEach((e,i)=>e.i=i);
+const ufDe=l=>l.e.uf||'—';
 const all=todos.filter(l=>l.ativo);
 $('#gen').textContent='coleta de '+ultima.slice(0,16);
 $('#run').innerHTML=`Última coleta <b>${esc(ultima.slice(0,16))}</b> (horário de Brasília): ${ex.editais} editais, ${ex.lotes} lotes · <b>${ex.novos}</b> novos, <b>${ex.alterados}</b> alterados, <b>${ex.saiu}</b> saíram. Coletas registradas: ${H.execucoes.length}. Para atualizar, rode o fluxo "Coleta de leilões" na aba Actions do GitHub.`;
-$('#filtros').innerHTML=H.filtros.ufs.map(u=>`<span class="chip">UF · ${esc(u)}</span>`).join('')+`<span class="chip">Tipo · ${esc(H.filtros.tipos)}</span>`;
+$('#filtros').innerHTML=(H.filtros.ufs.some(u=>/^TODOS/i.test(u))?'<span class="chip">Estados · todos</span>':H.filtros.ufs.map(u=>`<span class="chip">UF · ${esc(u)}</span>`).join(''))+`<span class="chip">Tipo · ${esc(H.filtros.tipos)}</span>`;
 const cel=all.filter(l=>l.tipos.some(t=>/CELULAR/.test(t)));
 const celAb=cel.filter(l=>l.situacao==='Aberto para Proposta');
-$('#kpis').innerHTML=[['Editais',D.editais.length],['Lotes',all.length],['Editais abertos',D.editais.filter(e=>e.aberto).length],['Lotes de celular',cel.length],['Celular aberto p/ proposta',celAb.length]].map(([a,b])=>`<div class="kpi"><small>${a}</small><b>${b}</b></div>`).join('');
-$('#eds').innerHTML=D.editais.map(e=>{const c=e.lotes.filter(l=>/CELULAR/.test(l.tipo)).length;
- return `<article class="ed"><span class="badge ${e.aberto?'ab':'di'}">${e.aberto?'ABERTO PARA PROPOSTA':'DISPONIBILIZADO'}</span>
+$('#kpis').innerHTML=[['Estados',new Set(D.editais.map(e=>e.uf)).size],['Editais',D.editais.length],['Lotes',all.length],['Editais abertos',D.editais.filter(e=>e.aberto).length],['Lotes de celular',cel.length],['Celular aberto p/ proposta',celAb.length]].map(([a,b])=>`<div class="kpi"><small>${a}</small><b>${b}</b></div>`).join('');
+const card=e=>{const c=e.lotes.filter(l=>/CELULAR/.test(l.tipo)).length;
+ return `<article class="ed"><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge ${e.aberto?'ab':'di'}">${e.aberto?'ABERTO PARA PROPOSTA':'DISPONIBILIZADO'}</span><span class="badge">${esc(e.uf)}</span></div>
  <h3><span class="cid">${esc(e.s.cid)}</span>${esc(e.s.num)}</h3>
  <dl><dt>Propostas até</dt><dd>${esc(e.propostas_ate)}</dd><dt>Lances</dt><dd>${esc(e.lances)}</dd><dt>Lotes no filtro</dt><dd>${e.lotes.length}</dd><dt>Com celular</dt><dd>${c}</dd><dt>Edital em PDF</dt><dd>${e.pdf?`<a href="${esc(e.pdf)}" target="_blank" rel="noopener">baixar PDF</a>`:'não baixado'}</dd></dl>
- <div><a class="btn sec" href="${BASE+esc(e.href)}" target="_blank" rel="noopener">Abrir no portal</a></div></article>`}).join('');
-$('#fEd').innerHTML='<option value="">Todos</option>'+D.editais.map(e=>`<option value="${e.i}">${esc(e.s.cid)} · ${esc(e.s.num)}</option>`).join('');
+ <div><a class="btn sec" href="${BASE+esc(e.href)}" target="_blank" rel="noopener">Abrir no portal</a></div></article>`};
+let edMax=9;
+function drawEds(){$('#eds').innerHTML=D.editais.slice(0,edMax).map(card).join('');
+ const m=$('#edMore');m.hidden=D.editais.length<=9;m.textContent=edMax>=D.editais.length?'Mostrar menos':`Mostrar todos os ${D.editais.length} editais`}
+$('#edMore').addEventListener('click',()=>{edMax=edMax>=D.editais.length?9:D.editais.length;drawEds()});
+drawEds();
+$('#fEd').innerHTML='<option value="">Todos</option>'+D.editais.map(e=>`<option value="${e.i}">${esc(e.uf)} · ${esc(e.s.cid)} · ${esc(e.s.num)}</option>`).join('');
 const cnt={};all.forEach(l=>l.tipos.forEach(t=>cnt[t]=(cnt[t]||0)+1));
 const tipos=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);const sel=new Set();
 $('#tipos').innerHTML=tipos.map(([t,n])=>`<button type="button" class="chip" aria-pressed="false" data-t="${esc(t)}">${esc(t)} · ${n}</button>`).join('');
 $('#tipos').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;const t=b.dataset.t;sel.has(t)?sel.delete(t):sel.add(t);b.setAttribute('aria-pressed',sel.has(t));lim=50;draw()});
+const cu={};all.forEach(l=>cu[ufDe(l)]=(cu[ufDe(l)]||0)+1);const selU=new Set();
+$('#ufs').innerHTML=Object.entries(cu).sort((a,b)=>b[1]-a[1]).map(([u,n])=>`<button type="button" class="chip" aria-pressed="false" data-u="${esc(u)}">${esc(u)} · ${n}</button>`).join('');
+$('#ufs').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;const u=b.dataset.u;selU.has(u)?selU.delete(u):selU.add(u);b.setAttribute('aria-pressed',selU.has(u));lim=50;draw()});
 let lim=50;
 function draw(){
  const ed=$('#fEd').value,st=$('#fSit').value,q=$('#fQ').value.trim().toLowerCase(),o=$('#fOrd').value;
  const mo=$('#fMos').value;const base=mo==='saiu'?todos.filter(l=>!l.ativo):mo==='novos'?all.filter(l=>l.novo_na_execucao===ultima&&H.execucoes.length>1):mo==='alt'?all.filter(l=>l.alterado_na_execucao===ultima):all;
- let L=base.filter(l=>(ed===''||l.e.i==ed||mo==='saiu')&&(!st||l.situacao===st)&&(!q||l.tipo.toLowerCase().includes(q))&&(!sel.size||l.tipos.some(t=>sel.has(t))));
+ let L=base.filter(l=>(ed===''||l.e.i==ed||mo==='saiu')&&(!st||l.situacao===st)&&(!q||l.tipo.toLowerCase().includes(q))&&(!sel.size||l.tipos.some(t=>sel.has(t)))&&(!selU.size||selU.has(ufDe(l))));
  const n=s=>+/\d+/.exec(s.lote)[0];
  L.sort(o==='lote'?(a,b)=>a.e.i-b.e.i||n(a)-n(b):o==='desc'?(a,b)=>(b.preco_minimo??0)-(a.preco_minimo??0):(a,b)=>(a.preco_minimo??1e12)-(b.preco_minimo??1e12));
- $('#rows').innerHTML=L.length?L.slice(0,lim).map(l=>`<tr><td><a href="${BASE+esc(l.href)}" target="_blank" rel="noopener">${esc(l.lote)}</a></td><td>${esc(l.e.s.cid)} <span class="mut">${esc(l.e.s.num)}</span></td><td>${esc(l.tipo)}${l.ativo&&l.novo_na_execucao===ultima&&H.execucoes.length>1?'<span class="tag nv">NOVO</span>':''}${l.alterado_na_execucao===ultima?'<span class="tag al">ALTEROU</span>':''}${!l.ativo?'<span class="tag sx">SAIU</span>':''}</td><td class="${l.situacao==='Aberto para Proposta'?'sit-ab':'sit-di'}">${esc(l.situacao)}</td><td class="r">${brl(l.preco_minimo)}${l.variacoes&&l.variacoes.length?`<div class="mut" style="font-size:11.5px">antes ${brl(l.variacoes[l.variacoes.length-1].preco_antes)}</div>`:''}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">Nenhum lote com esses filtros.</td></tr>';
+ $('#rows').innerHTML=L.length?L.slice(0,lim).map(l=>`<tr><td><a href="${BASE+esc(l.href)}" target="_blank" rel="noopener">${esc(l.lote)}</a></td><td>${esc(ufDe(l))}</td><td>${esc(l.e.s.cid)} <span class="mut">${esc(l.e.s.num)}</span></td><td>${esc(l.tipo)}${l.ativo&&l.novo_na_execucao===ultima&&H.execucoes.length>1?'<span class="tag nv">NOVO</span>':''}${l.alterado_na_execucao===ultima?'<span class="tag al">ALTEROU</span>':''}${!l.ativo?'<span class="tag sx">SAIU</span>':''}</td><td class="${l.situacao==='Aberto para Proposta'?'sit-ab':'sit-di'}">${esc(l.situacao)}</td><td class="r">${brl(l.preco_minimo)}${l.variacoes&&l.variacoes.length?`<div class="mut" style="font-size:11.5px">antes ${brl(l.variacoes[l.variacoes.length-1].preco_antes)}</div>`:''}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Nenhum lote com esses filtros.</td></tr>';
  $('#cnt').textContent=`Mostrando ${Math.min(lim,L.length)} de ${L.length} lotes`;
  $('#more').hidden=L.length<=lim;
 }
