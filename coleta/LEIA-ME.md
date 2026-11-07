@@ -4,7 +4,7 @@ Coleta o portal de leilões (SLE Sociedade) com Python + Playwright, guarda o hi
 e gera uma página HTML.
 
 - **Filtros:** edite `coleta/config.json` (estados, tipos de lote, quando baixar o PDF do edital).
-- **Rodar no GitHub:** aba *Actions* → *Coleta de leilões* → *Run workflow*. Roda também todo dia às 08:17 (Brasília).
+- **Rodar no GitHub:** aba *Actions* → *Coleta de leilões* → *Run workflow*. Só roda manualmente (sem agendamento).
 - **Resultado:** `docs/index.html` (página), `data/historico.json` (histórico), `docs/editais/` (PDFs dos editais).
 - **Ver a página:** *Settings* → *Pages* → *Deploy from a branch* → escolha a branch e a pasta `/docs`.
   Também dá para baixar `pagina-leiloes` na tela de cada execução (aba Actions).

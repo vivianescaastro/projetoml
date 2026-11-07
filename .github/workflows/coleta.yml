@@ -1,12 +1,7 @@
 name: Coleta de leilões
 
 on:
-  schedule:
-    - cron: "17 11 * * *"   # todo dia às 08:17 (horário de Brasília)
-  workflow_dispatch:         # botão "Run workflow" na aba Actions
-  push:
-    branches: [claude/phantom-playwright-automation-hfsa6w]
-    paths: ["coleta/**", ".github/workflows/coleta.yml"]
+  workflow_dispatch:   # só manual: aba Actions > Coleta de leilões > Run workflow
 
 permissions:
   contents: write
