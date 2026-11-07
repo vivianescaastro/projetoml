@@ -141,6 +141,15 @@ def atualizar_historico(editais):
     """Compara a coleta atual com o histórico e marca novos, alterados e que saíram."""
     h = json.loads(HISTORICO.read_text(encoding="utf-8")) if HISTORICO.exists() else {"lotes": {}, "editais": {}, "execucoes": []}
     ts = agora()
+    filtro_atual = {"ufs": CONFIG["ufs"], "tipos_regex": CONFIG["tipos_regex"]}
+    antigo = h.get("filtros")
+    if antigo and {"ufs": antigo.get("ufs"), "tipos_regex": antigo.get("tipos_regex")} != filtro_atual:
+        # filtro mudou: arquiva o histórico anterior e começa um novo (senão os lotes antigos viram "saiu")
+        arq = HISTORICO.parent / "arquivo"
+        arq.mkdir(exist_ok=True)
+        (arq / f"historico_{ts.replace(':', '').replace(' ', '_')}.json").write_text(json.dumps(h, ensure_ascii=False, indent=1), encoding="utf-8")
+        print("Filtro mudou: histórico anterior arquivado em data/arquivo/.")
+        h = {"lotes": {}, "editais": {}, "execucoes": []}
     visto = set()
     novos = alterados = 0
     for e in editais:
