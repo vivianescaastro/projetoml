@@ -1,7 +1,9 @@
 {
   "url": "https://www25.receita.fazenda.gov.br/sle-sociedade/portal",
   "ufs": [
-    "TODOS"
+    "SÃO PAULO",
+    "RIO DE JANEIRO",
+    "MINAS GERAIS"
   ],
   "tipos_regex": "ACESS[ÓO]RIO|COSM[ÉE]TICO|REL[ÓO]GIO|VE[ÍI]CULO|AUTOM[ÓO]VEL|CAMINH[ÃA]O",
   "baixar_edital_se_tipo_regex": "CELULAR",
